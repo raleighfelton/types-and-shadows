@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Canon, TranslationId } from "@/lib/bible";
 import { type Entry, type ThemeId, THEMES, TIERS } from "@/lib/typology";
-import { Credit } from "./Controls";
+import { Credit, Icon } from "./Controls";
 import Passage, { useQuote } from "./Passage";
 import ShareSheet from "./ShareSheet";
 
@@ -36,7 +36,7 @@ export function TypeEntry({
           </button>
           <div className="flex gap-1">
             <button type="button" className="icon-btn" aria-label="Share this type" title="Share" onClick={() => setSharing(true)}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
+              <Icon name="share" />
             </button>
             <button
               type="button"

@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import type { TranslationId } from "@/lib/bible";
+import { downloadFile } from "@/lib/download";
 import { FORMATS, type Format, type ShareParams, shareQuery } from "@/lib/shareUrl";
-import { useEscape } from "@/lib/usePopover";
-import { Segmented } from "./Controls";
+import { PreviewFrame, Segmented, Sheet, THEME_OPTIONS } from "./Controls";
 
 // Make a share image for a type or a connection: pick a size and theme,
 // then download it, share it (phones) or copy a link with a rich preview.
@@ -29,7 +28,6 @@ export default function ShareSheet({
   const [theme, setTheme] = useState<"dark" | "light">(root.dataset.theme === "light" ? "light" : "dark");
   const [file, setFile] = useState<{ url: string; file: File } | null>(null);
   const [status, setStatus] = useState<string | null>(null);
-  useEscape(onClose);
 
   const imageUrl = `/card?${shareQuery(target, { t: translation, f: format, theme, p: root.dataset.palette })}`;
   const link = `${location.origin}/s?${shareQuery(target, { t: translation })}`;
@@ -64,11 +62,7 @@ export default function ShareSheet({
   };
 
   function download() {
-    if (!file) return;
-    const a = document.createElement("a");
-    a.href = file.url;
-    a.download = fileName;
-    a.click();
+    if (file) downloadFile(file.file);
   }
 
   async function copy() {
@@ -87,61 +81,34 @@ export default function ShareSheet({
   }
 
   const { width, height } = FORMATS[format];
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Share ${name}`}
-        className="popover flex max-h-[92dvh] w-full max-w-[34rem] flex-col gap-4 overflow-y-auto rounded-t-2xl p-5 md:rounded-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-display text-2xl text-parchment">Share {name}</h2>
-          <button type="button" aria-label="Close" onClick={onClose} className="icon-btn">
-            ×
-          </button>
-        </div>
+  return (
+    <Sheet title={`Share ${name}`} onClose={onClose}>
+      <PreviewFrame aspect={`${width} / ${height}`} maxHeight="46dvh">
+        {file && (
+          // eslint-disable-next-line @next/next/no-img-element -- generated on demand
+          <img src={file.url} alt={`Share image: ${name}`} className="h-full w-full rounded-md object-contain shadow-lg" />
+        )}
+      </PreviewFrame>
 
-        <div className="grid place-items-center rounded-lg bg-ink p-3">
-          <div className="max-h-[46dvh] max-w-full" style={{ aspectRatio: `${width} / ${height}`, height: "46dvh" }}>
-            {file ? (
-              // eslint-disable-next-line @next/next/no-img-element -- generated on demand
-              <img src={file.url} alt={`Share image: ${name}`} className="h-full w-full rounded-md object-contain shadow-lg" />
-            ) : (
-              <div className="h-full w-full animate-pulse rounded-md bg-parchment/5" />
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Segmented value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
-          <Segmented
-            value={theme}
-            onChange={setTheme}
-            options={[
-              ["dark", "Dark"],
-              ["light", "Light"],
-            ]}
-          />
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <button type="button" disabled={!file} onClick={download} className="control py-2 text-[15px] hover:text-parchment disabled:opacity-50">
-            Download
-          </button>
-          <button type="button" onClick={share} className="control py-2 text-[15px] hover:text-parchment">
-            Share…
-          </button>
-          <button type="button" onClick={copy} className="control py-2 text-[15px] hover:text-parchment">
-            {status ?? "Copy link"}
-          </button>
-        </div>
-        <p className="text-meta italic text-muted">
-          Shared links show a preview with this connection. Scripture text: {translation} (public domain).
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segmented value={format} onChange={setFormat} options={FORMAT_OPTIONS} />
+        <Segmented value={theme} onChange={setTheme} options={THEME_OPTIONS} />
       </div>
-    </div>,
-    document.body,
+
+      <div className="grid grid-cols-3 gap-2">
+        <button type="button" disabled={!file} onClick={download} className="control py-2 text-[15px] hover:text-parchment disabled:opacity-50">
+          Download
+        </button>
+        <button type="button" onClick={share} className="control py-2 text-[15px] hover:text-parchment">
+          Share…
+        </button>
+        <button type="button" onClick={copy} className="control py-2 text-[15px] hover:text-parchment">
+          {status ?? "Copy link"}
+        </button>
+      </div>
+      <p className="text-meta italic text-muted">
+        Shared links show a preview with this connection. Scripture text: {translation} (public domain).
+      </p>
+    </Sheet>
   );
 }

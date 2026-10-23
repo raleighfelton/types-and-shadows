@@ -3,10 +3,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type ArcLayout, ArcGL } from "@/lib/arcGL";
 import { type Mode, filterArcs } from "@/lib/arcs";
-import { type Canon, SECTIONS, type XRef, formatRange, fromIndex } from "@/lib/bible";
+import { type Canon, type XRef, formatRange, fromIndex } from "@/lib/bible";
 import { dot, haloText, prep, strokeLink } from "@/lib/canvas";
+import {
+  HOVER_FONT,
+  computeLabels,
+  computeLayout,
+  drawBase,
+  drawTypeArcs,
+  fieldAlpha,
+  mapGeometry,
+  typeInk,
+} from "@/lib/mapDraw";
 import { type Theme, colorsFor } from "@/lib/palette";
-import { type Entry, type ThemeId, type TypeArc, THEMES, entryTip } from "@/lib/typology";
+import type { PaletteId } from "@/lib/settingsConfig";
+import { type Entry, type ThemeId, type TypeArc, entryTip } from "@/lib/typology";
 import { useElementSize } from "@/lib/useElementSize";
 import MapTip from "./MapTip";
 
@@ -30,8 +41,7 @@ type Props = {
   /** Mini strip: no labels, no interaction, no intro animation. */
   compact?: boolean;
   theme: Theme;
-  /** Recompute colors when the palette changes. */
-  palette?: string;
+  palette: PaletteId;
 };
 
 // What the pointer is over. Position is tracked separately so moving within
@@ -47,41 +57,6 @@ const hoverKey = (h: Hover) =>
   !h ? "" : h.kind === "chapter" ? `c${h.chapter}` : h.kind === "arc" ? `a${h.a}-${h.b}` : h.kind === "entry" ? `e${h.entry}` : `b${h.book}`;
 
 const REVEAL_MS = 2600;
-// Rows under the chapter bars: book names, then section brackets.
-const BOOK_ROW_DY = 14; // below the tallest bar
-const SECTION_ROW_DY = 22; // below the book names
-const SECTION_TEXT_PX = 13;
-const TESTAMENT_ROW_DY = 22; // below the section names (wide screens only)
-const TESTAMENT_TEXT_PX = 15;
-/** Height of the label rows under the bars; narrow screens skip the testament row. */
-const labelRowsHeight = (wide: boolean) =>
-  BOOK_ROW_DY + SECTION_ROW_DY + (wide ? TESTAMENT_ROW_DY + TESTAMENT_TEXT_PX : SECTION_TEXT_PX) + 10;
-const BOOK_FONT = "500 11px";
-/** Books too narrow to name get a short tick in the name row instead. */
-const TICK_H = 5;
-const TICK_DY = 2; // below the top of the name row
-const HOVER_FONT = "600 11px";
-/** Space kept between neighboring book names. */
-const LABEL_PAD = 3;
-/** A book name may be up to this times its book's width (lets REV show). */
-const LABEL_SPILL = 1.6;
-/** Section names may overhang their bracket by this much. */
-const SECTION_OVERHANG = 10;
-
-function computeLayout(width: number, height: number, inset?: number, compact = false): ArcLayout & { barMax: number } {
-  const padL = compact ? 10 : Math.max(20, width * 0.03);
-  const span = width - padL * 2;
-  const barMax = compact ? 8 : Math.max(26, Math.min(64, height * 0.075));
-  // Room under the chapter bars for book names and section brackets.
-  const below = compact ? 4 : Math.max(labelRowsHeight(width >= 640) + (width < 640 ? 12 : 28), height * 0.1);
-  const top = inset ?? (width < 640 ? 118 : Math.max(110, height * 0.14));
-  let baseY = height - barMax - below;
-  // With room to spare (tall phone screens), center the half-circle.
-  const spare = baseY - top - span / 2;
-  if (spare > 0) baseY -= spare / 2;
-  const hs = Math.min(1, (baseY - top) / (span / 2));
-  return { width, height, padL, span, baseY, hs, barMax };
-}
 
 export default function ArcCanvas(props: Props) {
   const { canon, arcs, minVotes, mode, entries, typeArcs, themeFilter, focusVerse, focusXrefs, focusEntry, link } = props;
@@ -91,7 +66,7 @@ export default function ArcCanvas(props: Props) {
   const overRef = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<ArcGL | null>(null);
   const compact = props.compact ?? false;
-  const C = useMemo(() => colorsFor(props.theme), [props.theme, props.palette]);
+  const C = useMemo(() => colorsFor(props.theme, props.palette), [props.theme, props.palette]);
   const revealed = useRef(compact ? 1 : 0);
   const size = useElementSize(wrapRef);
   const [hover, setHoverState] = useState<Hover>(null);
@@ -104,59 +79,18 @@ export default function ArcCanvas(props: Props) {
   }, []);
   const layout = useMemo(() => computeLayout(size.w, size.h, props.top, compact), [size, props.top, compact]);
   const total = canon.total;
-  const xOf = (idx: number) => layout.padL + ((idx + 0.5) / total) * layout.span;
-
-  /** Left and right x of a run of books (inclusive). */
-  const bookSpan = (first: number, last = first) =>
-    [xOf(canon.books[first].start), xOf(canon.books[last].start + canon.books[last].verses - 1)] as const;
+  const geo = useMemo(() => mapGeometry(canon, layout), [canon, layout]);
+  const { xOf, bookSpan } = geo;
 
   // Book names where they fit; under them, brackets naming each section of
   // the canon so the crowded short books still read in context. Measured once
   // per layout and font, then shared by drawing, hover and hit-testing.
-  const labels = useMemo(() => {
-    const y = layout.baseY + layout.barMax + BOOK_ROW_DY;
-    const sectionY = y + SECTION_ROW_DY;
-    const testamentY = sectionY + TESTAMENT_ROW_DY;
-    const empty = { y, sectionY, testamentY, bottom: sectionY + SECTION_TEXT_PX + 6, books: [], sections: [] };
-    if (compact || !size.w || typeof document === "undefined") return empty;
-    const ctx = document.createElement("canvas").getContext("2d")!;
-    ctx.font = `${BOOK_FONT} ${C.serif}`;
-    let lastRight = -Infinity;
-    const named: { x: number; w: number }[] = [];
-    const fits = canon.books.map((b, i) => {
-      const [x1, x2] = bookSpan(i);
-      const x = (x1 + x2) / 2;
-      const name = b.short.toUpperCase();
-      const w = ctx.measureText(name).width;
-      const shown = w <= (x2 - x1) * LABEL_SPILL && x - w / 2 - LABEL_PAD >= lastRight;
-      if (shown) {
-        lastRight = x + w / 2 + LABEL_PAD;
-        named.push({ x, w });
-      }
-      return { x, name, shown };
-    });
-    // Each book is named, ticked (too narrow, and clear of any name), or left
-    // blank. Its hover name sits at hoverX, kept inside the chart.
-    ctx.font = `${HOVER_FONT} ${C.serif}`;
-    const books = fits.map(({ x, name, shown }) => {
-      const half = ctx.measureText(name).width / 2;
-      const clear = named.every((n) => Math.abs(x - n.x) > n.w / 2 + LABEL_PAD);
-      const mark: "name" | "tick" | null = shown ? "name" : clear ? "tick" : null;
-      const hoverX = Math.min(Math.max(x, layout.padL + half), layout.padL + layout.span - half);
-      return { x, name, mark, hoverX };
-    });
-    ctx.font = `italic ${SECTION_TEXT_PX}px ${C.display}`;
-    const index = (osis: string) => canon.books.findIndex((b) => b.osis === osis);
-    const sections = SECTIONS.flatMap((s) => {
-      const [l, r] = bookSpan(index(s.from), index(s.to));
-      const [x1, x2] = [l + 2, r - 2];
-      // An unnamed bracket reads as noise, so skip it when no name fits.
-      const name = [s.name, s.short].find((n) => n && ctx.measureText(n).width <= x2 - x1 + SECTION_OVERHANG);
-      return name ? [{ x1, x2, name }] : [];
-    });
-    return { ...empty, books, sections };
-    // fontsReady: names are re-measured once the web fonts load.
-  }, [canon, layout, C, compact, size.w, fontsReady]);
+  const labels = useMemo(
+    // Measured once the web fonts load (names are re-measured then).
+    () => computeLabels(canon, layout, C, fontsReady && !compact && size.w > 0),
+    [canon, layout, C, fontsReady, compact, size.w],
+  );
+
 
   const verseChapter = canon.verseChapter;
   const filtered = useMemo(() => filterArcs(canon, arcs, minVotes), [canon, arcs, minVotes]);
@@ -174,11 +108,7 @@ export default function ArcCanvas(props: Props) {
     };
   }, []);
 
-  const fieldAlpha =
-    (mode === "types" ? (C.light ? 0.0035 : 0.006) : focusVerse !== null || hover?.kind === "chapter" ? 0.01 : 0.022) *
-    // Narrow screens pack the same arcs into far fewer pixels.
-    Math.min(1, Math.max(0.15, Math.pow(size.w / 1000, 1.5))) *
-    (compact ? 0.6 : 1);
+  const alpha = fieldAlpha(mode, C, size.w, focusVerse !== null || hover?.kind === "chapter") * (compact ? 0.6 : 1);
 
   useEffect(() => {
     renderer.current?.setArcs(filtered.gpu);
@@ -190,7 +120,7 @@ export default function ArcCanvas(props: Props) {
     if (!r || !size.w) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (revealed.current >= 1) {
-      r.draw(layout, dpr, fieldAlpha, C.bg, C.light);
+      r.draw(layout, dpr, alpha, C.bg, C.light);
       return;
     }
     let raf = 0;
@@ -199,92 +129,27 @@ export default function ArcCanvas(props: Props) {
       const p = Math.min(1, Math.max(0, (now - t0) / REVEAL_MS));
       revealed.current = p;
       const eased = 1 - Math.pow(1 - p, 3);
-      r.draw(layout, dpr, fieldAlpha, C.bg, C.light, Math.floor(eased * r.count));
+      r.draw(layout, dpr, alpha, C.bg, C.light, Math.floor(eased * r.count));
       if (p < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [layout, size.w, filtered, fieldAlpha, C]);
+  }, [layout, size.w, filtered, alpha, C]);
 
   // Base layer: chapter bars and book labels.
   useEffect(() => {
     const c = baseRef.current;
     if (!c || !size.w) return;
-    const ctx = prep(c, size.w, size.h);
-    const { baseY, barMax } = layout;
-    const pxPerVerse = layout.span / total;
-    let ch = 0;
-    canon.books.forEach((b, bi) => {
-      const tone = bi % 2 ? 0.5 : 0.28;
-      b.chapters.forEach((n) => {
-        const x = xOf(canon.chapterStarts[ch]) - pxPerVerse / 2;
-        const w = n * pxPerVerse;
-        const h = Math.max(2, (n / 176) * barMax);
-        ctx.fillStyle = `rgba(${C.fg}, ${tone})`;
-        ctx.fillRect(x, baseY + 3, Math.max(0.6, w - (w > 2.5 ? 0.6 : 0)), h);
-        ch++;
-      });
-    });
-    // baseline
-    ctx.fillStyle = `rgba(${C.fg}, 0.35)`;
-    ctx.fillRect(layout.padL, baseY, layout.span, 1);
-
-    if (compact) return;
-
-    // labels
-    ctx.font = `${BOOK_FONT} ${C.serif}`;
-    ctx.fillStyle = C.text;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    for (const L of labels.books) {
-      if (L.mark === "name") ctx.fillText(L.name, L.x, labels.y);
-      else if (L.mark === "tick") ctx.fillRect(Math.round(L.x), labels.y + TICK_DY, 1, TICK_H);
-    }
-    // section brackets
-    ctx.font = `italic ${SECTION_TEXT_PX}px ${C.display}`;
-    ctx.strokeStyle = C.text;
-    ctx.lineWidth = 0.75;
-    for (const { x1, x2, name } of labels.sections) {
-      const y = labels.sectionY;
-      ctx.beginPath();
-      ctx.moveTo(x1, y - 4);
-      ctx.lineTo(x1, y);
-      ctx.lineTo(x2, y);
-      ctx.lineTo(x2, y - 4);
-      ctx.stroke();
-      ctx.fillText(name, (x1 + x2) / 2, y + 4);
-    }
-    // Testament divider
-    const ntX = xOf(canon.books[39].start) - pxPerVerse / 2;
-    ctx.fillStyle = C.text;
-    if (size.w < 640) {
-      ctx.fillRect(ntX, baseY - 6, 1, barMax + 12);
-      return;
-    }
-    // The divider runs down to a row below the sections, labeled either side.
-    ctx.fillRect(ntX, baseY - 6, 1, labels.testamentY - baseY + 6 + TESTAMENT_TEXT_PX);
-    ctx.font = `italic ${TESTAMENT_TEXT_PX}px ${C.display}`;
-    ctx.textBaseline = "top";
-    ctx.textAlign = "right";
-    ctx.fillText("← Old Testament", ntX - 10, labels.testamentY);
-    ctx.textAlign = "left";
-    ctx.fillText("New Testament →", ntX + 10, labels.testamentY);
-  }, [layout, canon, size, fontsReady, compact, C, labels]);
+    drawBase(prep(c, size.w, size.h), canon, layout, labels, C, compact);
+  }, [layout, canon, size, compact, C, labels]);
 
   // Overlay: type arcs, focus, hover.
   useEffect(() => {
     const c = overRef.current;
     if (!c || !size.w) return;
     const ctx = prep(c, size.w, size.h);
-    const { baseY, hs } = layout;
-    // Adds one arc as its own subpath; stroke many at once with arcs().
-    const trace = (a: number, b: number) => {
-      const x1 = xOf(Math.min(a, b));
-      const x2 = xOf(Math.max(a, b));
-      const r = Math.max(0.5, (x2 - x1) / 2);
-      ctx.moveTo(x1, baseY);
-      ctx.ellipse((x1 + x2) / 2, baseY, r, r * hs, 0, Math.PI, 2 * Math.PI);
-    };
+    const { baseY } = layout;
+    const trace = (a: number, b: number) => geo.trace(ctx, a, b);
     const arc = (a: number, b: number) => {
       ctx.beginPath();
       trace(a, b);
@@ -293,19 +158,11 @@ export default function ArcCanvas(props: Props) {
 
     if (mode === "types") {
       const hot = hover?.kind === "entry" ? hover.entry : focusEntry;
-      for (const t of typeArcs) {
-        const e = entries[t.entry];
-        const dim = (themeFilter && e.theme !== themeFilter) || (hot !== null && hot !== t.entry);
-        ctx.strokeStyle = C.ink(THEMES[e.theme].color);
-        ctx.globalAlpha = dim ? 0.12 : t.primary ? 0.95 : 0.5;
-        ctx.lineWidth = t.primary ? 1.4 : 0.9;
-        ctx.shadowBlur = 0;
-        arc(t.a, t.b);
-      }
+      drawTypeArcs(ctx, canon, layout, typeArcs, entries, C, { themeFilter, hot });
       if (hot !== null) {
         const e = entries[hot];
-        ctx.strokeStyle = C.ink(THEMES[e.theme].color);
-        ctx.shadowColor = C.ink(THEMES[e.theme].color);
+        ctx.strokeStyle = typeInk(C, e);
+        ctx.shadowColor = typeInk(C, e);
         ctx.shadowBlur = C.glow(14);
         ctx.globalAlpha = 1;
         for (const t of typeArcs) {
@@ -314,7 +171,7 @@ export default function ArcCanvas(props: Props) {
           arc(t.a, t.b);
         }
         ctx.shadowBlur = 0;
-        for (const p of [...e.shadow, ...e.substance]) dot(ctx, xOf(p.from), baseY, C.ink(THEMES[e.theme].color));
+        for (const p of [...e.shadow, ...e.substance]) dot(ctx, xOf(p.from), baseY, typeInk(C, e));
       }
     }
 

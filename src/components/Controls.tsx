@@ -1,10 +1,12 @@
 "use client";
 
-// Header controls shared by the desktop (Explorer) and phone (MobileShell) layouts.
+// Controls shared by the desktop (Explorer) and phone (MobileShell) layouts.
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { type Mode, VOTE_STEPS } from "@/lib/arcs";
 import { type Canon, parseQuery, toIndex } from "@/lib/bible";
 import { AUTHOR_URL, SOURCE_URL } from "@/lib/site";
+import { useEscape } from "@/lib/usePopover";
 import InfoTip from "./InfoTip";
 
 /** A row of mutually exclusive options in a pill. */
@@ -46,6 +48,15 @@ export function Segmented<T extends string>({
   );
 }
 
+export const MODE_OPTIONS = [
+  ["types", "Types & Shadows"],
+  ["all", "Every cross-reference"],
+] as const;
+export const THEME_OPTIONS = [
+  ["dark", "Dark"],
+  ["light", "Light"],
+] as const;
+
 export function ModeTabs({ mode, onMode, compact }: { mode: Mode; onMode: (m: Mode) => void; compact?: boolean }) {
   return (
     <Segmented
@@ -53,10 +64,14 @@ export function ModeTabs({ mode, onMode, compact }: { mode: Mode; onMode: (m: Mo
       size="sm"
       value={mode}
       onChange={onMode}
-      options={[
-        ["types", compact ? "Types" : "Types & Shadows"],
-        ["all", compact ? "All links" : "Every cross-reference"],
-      ]}
+      options={
+        compact
+          ? [
+              ["types", "Types"],
+              ["all", "All links"],
+            ]
+          : MODE_OPTIONS
+      }
     />
   );
 }
@@ -171,5 +186,82 @@ export function Credit({ withSource }: { withSource?: boolean }) {
         </>
       )}
     </>
+  );
+}
+
+/** Line icons in the site's style (24-unit grid, 1.6 stroke). */
+const ICONS = {
+  share: "M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6",
+  download: "M12 3v12M7 10l5 5 5-5M5 21h14",
+} as const;
+export function Icon({ name, size = 15 }: { name: keyof typeof ICONS; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={ICONS[name]} />
+    </svg>
+  );
+}
+
+/** Opens the "Download the map" sheet. */
+export function DownloadMapButton({ onClick, label }: { onClick: () => void; label?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Download the map"
+      title="Download the map as an image"
+      className="control flex h-[34px] items-center gap-2 px-3 text-soft hover:text-parchment"
+    >
+      <Icon name="download" />
+      {label && <span className="smallcaps text-meta">Download</span>}
+    </button>
+  );
+}
+
+/** A dialog sheet: bottom sheet on phones, centered card on larger screens. */
+export function Sheet({
+  title,
+  onClose,
+  wide,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  wide?: boolean;
+  children: React.ReactNode;
+}) {
+  useEscape(onClose);
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 md:items-center" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={`popover flex max-h-[92dvh] w-full flex-col gap-4 overflow-y-auto rounded-t-2xl p-5 md:rounded-xl ${
+          wide ? "max-w-[40rem]" : "max-w-[34rem]"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-display text-2xl text-parchment">{title}</h2>
+          <button type="button" aria-label="Close" onClick={onClose} className="icon-btn">
+            ×
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+/** Framed preview area with a fixed aspect ratio and a loading shimmer. */
+export function PreviewFrame({ aspect, maxHeight, children }: { aspect: string; maxHeight: string; children?: React.ReactNode }) {
+  return (
+    <div className="grid place-items-center rounded-lg bg-ink p-3">
+      <div className="max-w-full" style={{ aspectRatio: aspect, maxHeight, height: maxHeight }}>
+        {children ?? <div className="h-full w-full animate-pulse rounded-md bg-parchment/5" />}
+      </div>
+    </div>
   );
 }

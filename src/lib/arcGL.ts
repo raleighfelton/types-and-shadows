@@ -57,6 +57,15 @@ in vec4 v_color;
 out vec4 outColor;
 void main() { outColor = v_color; }`;
 
+/**
+ * Lines are one device pixel wide, so at higher resolutions each covers less
+ * of the picture. Brightness rises with resolution to keep the same density:
+ * gently up to 2× (screens), then in proportion (print).
+ */
+export function resolutionGain(dpr: number) {
+  return dpr <= 2 ? Math.sqrt(dpr) : Math.SQRT2 * (dpr / 2);
+}
+
 export type ArcLayout = { width: number; height: number; padL: number; span: number; baseY: number; hs: number };
 
 export class ArcGL {
@@ -68,8 +77,15 @@ export class ArcGL {
   private u: Record<string, WebGLUniformLocation | null> = {};
   count = 0;
 
-  constructor(private canvas: HTMLCanvasElement) {
-    const gl = canvas.getContext("webgl2", { alpha: false, antialias: true, preserveDrawingBuffer: false });
+  /** `print`: no antialiasing or depth buffers, to keep very large renders within memory. */
+  constructor(private canvas: HTMLCanvasElement, { print = false } = {}) {
+    const gl = canvas.getContext("webgl2", {
+      alpha: false,
+      antialias: !print,
+      depth: false,
+      stencil: false,
+      preserveDrawingBuffer: false,
+    });
     if (!gl) throw new Error("WebGL2 unavailable");
     this.gl = gl;
     this.prog = link(gl, VS, FS);
@@ -106,8 +122,21 @@ export class ArcGL {
     gl.deleteProgram(this.prog);
   }
 
+  /** The canvas this renders into (to copy the result elsewhere). */
+  get canvasElement() {
+    return this.canvas;
+  }
+
+  /** Frees the GPU context itself; only for throwaway canvases (posters). */
+  loseContext() {
+    this.gl.getExtension("WEBGL_lose_context")?.loseContext();
+  }
+
   /** data: [x1n, x2n, votes] per arc, already sorted for reveal order. */
+  private data: Float32Array | null = null;
   setArcs(data: Float32Array) {
+    if (data === this.data) return;
+    this.data = data;
     const { gl } = this;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.inst);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
@@ -137,7 +166,7 @@ export class ArcGL {
     gl.uniform1f(this.u.u_hs, layout.hs);
     // Thinner device pixels need a little more light to read the same.
     // Layered color needs more pigment per line than added light does.
-    gl.uniform1f(this.u.u_alpha, alpha * Math.min(1.4, Math.sqrt(dpr)) * (light ? LIGHT_GAIN : 1));
+    gl.uniform1f(this.u.u_alpha, alpha * resolutionGain(dpr) * (light ? LIGHT_GAIN : 1));
     gl.uniform1f(this.u.u_light, light ? 1 : 0);
     gl.bindVertexArray(this.vao);
     gl.drawArraysInstanced(gl.LINE_STRIP, 0, SEGMENTS + 1, Math.min(upTo, this.count));

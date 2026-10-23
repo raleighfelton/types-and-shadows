@@ -4,8 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Mode } from "@/lib/arcs";
 import { type Canon, type XRef, formatRange, fromIndex, loadXrefs, toIndex } from "@/lib/bible";
 import { dot, haloText, prep, strokeLink } from "@/lib/canvas";
+import { DIM_ALPHA, typeInk } from "@/lib/mapDraw";
 import { type Theme, colorsFor } from "@/lib/palette";
-import { type Entry, type ThemeId, THEMES, entryTip } from "@/lib/typology";
+import type { PaletteId } from "@/lib/settingsConfig";
+import { type Entry, type ThemeId, entryTip } from "@/lib/typology";
 import { useElementSize } from "@/lib/useElementSize";
 import { ZoomTrail } from "./Controls";
 import MapTip from "./MapTip";
@@ -33,8 +35,7 @@ type Props = {
   /** Space reserved at the top for overlaid controls. */
   top?: number;
   theme: Theme;
-  /** Recompute colors when the palette changes. */
-  palette?: string;
+  palette: PaletteId;
 };
 
 type Flow = { chapter: number; target: number; count: number; firstVerse: number };
@@ -52,7 +53,7 @@ const hoverKey = (h: Hover) =>
 export default function BookView(p: Props) {
   const { canon, book, minVotes, mode, entries, themeFilter, focusVerse, focusXrefs, link, activeChapter } = p;
   const b = canon.books[book];
-  const C = useMemo(() => colorsFor(p.theme), [p.theme, p.palette]);
+  const C = useMemo(() => colorsFor(p.theme, p.palette), [p.theme, p.palette]);
   const wrap = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
   const size = useElementSize(wrap);
@@ -222,14 +223,14 @@ export default function BookView(p: Props) {
       if (themeFilter && e.theme !== themeFilter) return;
       const hot = hotEntry === t.entry || hc === t.chapter;
       const dim = !hot && (hotEntry !== null || anyHot);
-      ctx.strokeStyle = C.ink(THEMES[e.theme].color);
-      ctx.globalAlpha = dim ? 0.12 : quiet || hot ? 1 : 0.8;
+      ctx.strokeStyle = typeInk(C, e);
+      ctx.globalAlpha = dim ? DIM_ALPHA : quiet || hot ? 1 : 0.8;
       ctx.lineWidth = hot ? 3 : 2;
-      ctx.shadowColor = C.ink(THEMES[e.theme].color);
+      ctx.shadowColor = typeInk(C, e);
       ctx.shadowBlur = C.glow(hot ? 14 : quiet && !dim ? 6 : 0);
       const [y0, y1] = L.typeY[k];
       curve(ctx, y0, y1);
-      dot(ctx, L.x1, y1, C.ink(THEMES[e.theme].color));
+      dot(ctx, L.x1, y1, typeInk(C, e));
     });
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;

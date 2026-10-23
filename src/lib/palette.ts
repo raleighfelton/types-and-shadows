@@ -2,6 +2,8 @@
 // the arc shader (arcGL.ts), so a connection is colored the same everywhere:
 // by how far it reaches.
 
+import { PALETTE_COLORS, type PaletteId, TEXT_MIX } from "./settingsConfig";
+
 export type Theme = "dark" | "light";
 
 // A rainbow (Genesis 9:13): the longest reaches form the outer red band, the
@@ -58,22 +60,13 @@ export function deepen(hex: string, amount: number) {
   return `rgb(${[r, g, b].map((v) => Math.round((v + m) * 255)).join(", ")})`;
 }
 
-/** Reads a CSS color variable (#rrggbb) as [r, g, b] 0..255. */
-function cssRGB(name: string, fallback: [number, number, number]): [number, number, number] {
-  if (typeof document === "undefined") return fallback;
-  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  const m = /^#([0-9a-f]{6})$/i.exec(v);
-  if (!m) return fallback;
-  const n = parseInt(m[1], 16);
-  return [n >> 16, (n >> 8) & 255, n & 255];
-}
+const hexRGB = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 
-/** Map colors for the active theme (read from the CSS tokens in globals.css). */
-export function colorsFor(theme: Theme) {
+/** Map colors for a theme and palette (the same values as the CSS tokens). */
+export function colorsFor(theme: Theme, palette: PaletteId) {
   const light = theme === "light";
-  const bg = cssRGB("--color-ink", light ? [246, 245, 241] : [14, 18, 32]);
-  const fg = cssRGB("--color-parchment", light ? [23, 32, 47] : [232, 230, 223]);
-  const link = cssRGB("--color-link", light ? [47, 69, 232] : [168, 192, 255]);
+  const P = PALETTE_COLORS[palette][theme];
+  const [bg, fg, link] = [P.ink, P.fg, P.link].map(hexRGB);
   return {
     light,
     /** Foreground as "r, g, b" for rgba() strings. */
@@ -81,9 +74,13 @@ export function colorsFor(theme: Theme) {
     /** Background for the WebGL clear, 0..1. */
     bg: bg.map((v) => v / 255) as [number, number, number],
     /** The selected connection. */
-    link: `rgb(${link.join(", ")})`,
+    link: P.link,
     /** Secondary label text on the map; passes WCAG AA like --color-muted. */
-    text: `rgba(${fg.join(", ")}, ${light ? 0.74 : 0.62})`,
+    text: `rgba(${fg.join(", ")}, ${TEXT_MIX[theme].muted})`,
+    /** The palette's accent (the "&" in the title, active controls). */
+    accent: P.accent,
+    /** Background as CSS. */
+    bgCss: P.ink,
     /** Halo behind canvas labels. */
     outline: `rgba(${bg.join(", ")}, 0.92)`,
     /** Glow reads as light on a dark sky; on paper it just smudges. */

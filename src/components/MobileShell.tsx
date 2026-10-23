@@ -3,6 +3,7 @@
 import { type Mode, VOTE_STEPS } from "@/lib/arcs";
 import { type Canon, type TranslationId, type VerseRef, type XRef, parseQuery, toIndex } from "@/lib/bible";
 import type { Theme } from "@/lib/palette";
+import type { PaletteId } from "@/lib/settingsConfig";
 import type { Entry, ThemeId, TypeArc } from "@/lib/typology";
 import ArcCanvas from "./ArcCanvas";
 import BookPicker from "./BookPicker";
@@ -19,8 +20,9 @@ export type Tab = "map" | "types" | "read";
 
 type Props = {
   theme: Theme;
-  palette: string;
+  palette: PaletteId;
   settingsButton: React.ReactNode;
+  downloadButton: React.ReactNode;
   canon: Canon;
   arcs: Int16Array | null;
   entries: Entry[];
@@ -112,7 +114,10 @@ export default function MobileShell(p: Props) {
         <section className={tab === "map" ? "absolute inset-0 flex flex-col" : "hidden"}>
           <div className="flex items-center justify-between gap-2 px-4 pt-1">
             <ModeTabs mode={mode} onMode={p.onMode} compact />
-            <BookPicker canon={canon} current={book} onPick={p.onBook} />
+            <div className="flex items-center gap-2">
+              {p.downloadButton}
+              <BookPicker canon={canon} current={book} onPick={p.onBook} />
+            </div>
           </div>
 
           {book !== null && (

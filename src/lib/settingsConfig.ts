@@ -7,8 +7,8 @@ export type FontId = "classic" | "book" | "clear";
 export type PaletteId = "lapis" | "parchment" | "rubric" | "plain";
 export type Settings = { theme: ThemePref; font: FontId; size: number; palette: PaletteId };
 
-/** Palette colors per theme. globals.css holds the same values for the page;
- *  these are for places that can't read CSS, like generated share images. */
+/** Palette colors per theme, for everything drawn in code: the map, share
+ *  images and posters. globals.css holds the same values for the page. */
 export type PaletteColors = { ink: string; ink2: string; fg: string; accent: string; link: string };
 export const PALETTE_COLORS: Record<PaletteId, { name: string; dark: PaletteColors; light: PaletteColors }> = {
   lapis: {
