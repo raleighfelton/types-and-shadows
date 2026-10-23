@@ -83,7 +83,7 @@ export default function ShareSheet({
   const { width, height } = FORMATS[format];
   return (
     <Sheet title={`Share ${name}`} onClose={onClose}>
-      <PreviewFrame aspect={`${width} / ${height}`} maxHeight="46dvh">
+      <PreviewFrame aspect={width / height} maxHeight="46dvh">
         {file && (
           // eslint-disable-next-line @next/next/no-img-element -- generated on demand
           <img src={file.url} alt={`Share image: ${name}`} className="h-full w-full rounded-md object-contain shadow-lg" />

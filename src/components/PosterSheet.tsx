@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArcGL } from "@/lib/arcGL";
+import { ArcGL, MAX_DPR } from "@/lib/arcGL";
 import type { Mode } from "@/lib/arcs";
 import type { Canon } from "@/lib/bible";
 import { downloadFile } from "@/lib/download";
@@ -15,7 +15,6 @@ import { MODE_OPTIONS, PreviewFrame, Segmented, Sheet, THEME_OPTIONS } from "./C
 // dark or light. Renders in the browser with the live map's drawing code.
 
 const SIZE_OPTIONS = (Object.keys(POSTERS) as PosterSize[]).map((s) => [s, POSTERS[s].label, POSTERS[s].hint] as const);
-const PREVIEW_PX = 640;
 
 export default function PosterSheet({
   mode: initialMode,
@@ -39,15 +38,14 @@ export default function PosterSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const preview = useRef<HTMLCanvasElement>(null);
-  // One WebGL context for every preview while the sheet is open.
-  const [gl] = useState(() => new ArcGL(document.createElement("canvas"), { print: true }));
-  useEffect(
-    () => () => {
-      gl.dispose();
-      gl.loseContext();
-    },
-    [gl],
-  );
+  // One WebGL context for every preview while the sheet is open. Created in
+  // an effect so a mount/unmount/mount cycle gets a fresh, live context.
+  const [gl, setGl] = useState<ArcGL | null>(null);
+  useEffect(() => {
+    const g = new ArcGL(document.createElement("canvas"));
+    setGl(g);
+    return () => g.destroy();
+  }, []);
 
   const { canon, arcs, entries, typeArcs, minVotes, palette } = data;
   const input = useMemo(
@@ -56,18 +54,22 @@ export default function PosterSheet({
   );
   const spec = POSTERS[size];
 
-  // A small render straight into the preview canvas; full size only on download.
+  // The preview renders at its on-screen size (sharp on any display); the
+  // arcs are still drawn at full density, so it matches the download.
   useEffect(() => {
+    if (!gl) return;
     const id = requestAnimationFrame(() => {
       const target = preview.current;
       if (!target) return;
-      const c = renderPoster(input, { maxWidth: PREVIEW_PX, gl });
+      const px = Math.round(target.clientWidth * Math.min(window.devicePixelRatio || 1, MAX_DPR));
+      const c = renderPoster(input, { scale: px / spec.width, gl });
       target.width = c.width;
       target.height = c.height;
       target.getContext("2d")!.drawImage(c, 0, 0);
+      c.width = c.height = 0;
     });
     return () => cancelAnimationFrame(id);
-  }, [input, gl]);
+  }, [input, gl, spec.width]);
 
   async function download() {
     setBusy(true);
@@ -85,7 +87,7 @@ export default function PosterSheet({
 
   return (
     <Sheet title="Download the map" onClose={onClose} wide>
-      <PreviewFrame aspect={`${spec.width} / ${spec.height}`} maxHeight="48dvh">
+      <PreviewFrame aspect={spec.width / spec.height} maxHeight="48dvh">
         <canvas ref={preview} aria-label="Map preview" className="h-full w-full rounded-md object-contain shadow-lg" />
       </PreviewFrame>
 

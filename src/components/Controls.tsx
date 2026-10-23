@@ -255,11 +255,11 @@ export function Sheet({
   );
 }
 
-/** Framed preview area with a fixed aspect ratio and a loading shimmer. */
-export function PreviewFrame({ aspect, maxHeight, children }: { aspect: string; maxHeight: string; children?: React.ReactNode }) {
+/** Framed preview area (with a loading shimmer): as large as fits both the sheet's width and `maxHeight`, at the given aspect (width / height). */
+export function PreviewFrame({ aspect, maxHeight, children }: { aspect: number; maxHeight: string; children?: React.ReactNode }) {
   return (
     <div className="grid place-items-center rounded-lg bg-ink p-3">
-      <div className="max-w-full" style={{ aspectRatio: aspect, maxHeight, height: maxHeight }}>
+      <div style={{ aspectRatio: aspect, width: `min(100%, calc(${maxHeight} * ${aspect}))` }}>
         {children ?? <div className="h-full w-full animate-pulse rounded-md bg-parchment/5" />}
       </div>
     </div>

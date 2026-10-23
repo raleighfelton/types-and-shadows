@@ -58,12 +58,15 @@ out vec4 outColor;
 void main() { outColor = v_color; }`;
 
 /**
- * Lines are one device pixel wide, so at higher resolutions each covers less
- * of the picture. Brightness rises with resolution to keep the same density:
- * gently up to 2× (screens), then in proportion (print).
+ * Arcs are never drawn denser than this. Lines are one device pixel wide, so
+ * density sets how they look; posters draw at this cap and scale the result,
+ * so they match the live map at any size.
  */
-export function resolutionGain(dpr: number) {
-  return dpr <= 2 ? Math.sqrt(dpr) : Math.SQRT2 * (dpr / 2);
+export const MAX_DPR = 2;
+
+/** On denser screens each line is brightened a little to read the same. */
+function resolutionGain(dpr: number) {
+  return Math.sqrt(dpr);
 }
 
 export type ArcLayout = { width: number; height: number; padL: number; span: number; baseY: number; hs: number };
@@ -77,11 +80,10 @@ export class ArcGL {
   private u: Record<string, WebGLUniformLocation | null> = {};
   count = 0;
 
-  /** `print`: no antialiasing or depth buffers, to keep very large renders within memory. */
-  constructor(private canvas: HTMLCanvasElement, { print = false } = {}) {
+  constructor(private canvas: HTMLCanvasElement) {
     const gl = canvas.getContext("webgl2", {
       alpha: false,
-      antialias: !print,
+      antialias: true,
       depth: false,
       stencil: false,
       preserveDrawingBuffer: false,
@@ -127,9 +129,11 @@ export class ArcGL {
     return this.canvas;
   }
 
-  /** Frees the GPU context itself; only for throwaway canvases (posters). */
-  loseContext() {
+  /** For throwaway renderers (posters): frees the buffers, the context and the pixels. */
+  destroy() {
+    this.dispose();
     this.gl.getExtension("WEBGL_lose_context")?.loseContext();
+    this.canvas.width = this.canvas.height = 0;
   }
 
   /** data: [x1n, x2n, votes] per arc, already sorted for reveal order. */
@@ -143,8 +147,9 @@ export class ArcGL {
     this.count = data.length / 3;
   }
 
-  draw(layout: ArcLayout, dpr: number, alpha: number, bg: [number, number, number], light: boolean, upTo = this.count) {
+  draw(layout: ArcLayout, density: number, alpha: number, bg: [number, number, number], light: boolean, upTo = this.count) {
     const { gl, canvas } = this;
+    const dpr = Math.min(density, MAX_DPR);
     const w = Math.round(layout.width * dpr);
     const h = Math.round(layout.height * dpr);
     if (canvas.width !== w || canvas.height !== h) {

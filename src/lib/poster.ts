@@ -1,7 +1,7 @@
 // Downloadable poster of the whole map, drawn with the same code as the live
 // map at print or screen resolution: title, the arcs, book labels, sections,
 // a legend (types) and credits.
-import { ArcGL } from "./arcGL";
+import { ArcGL, MAX_DPR } from "./arcGL";
 import { type Mode, filterArcs } from "./arcs";
 import type { Canon } from "./bible";
 import { computeLabels, computeLayout, drawBase, drawTypeArcs, fieldAlpha } from "./mapDraw";
@@ -39,12 +39,12 @@ const TAGLINE_GAP = 22; // title baseline to tagline top (clears descenders)
 const HEADER = T.title + TAGLINE_GAP + T.tagline + GAP; // below the top margin
 
 /**
- * Draws the poster. `maxWidth` renders it smaller (in output pixels) for a
- * preview; `gl` lets a caller reuse one WebGL context across renders.
+ * Draws the poster at its print scale, or at `scale` (output pixels per layout
+ * unit) for a preview. `gl` lets a caller reuse one WebGL context.
  */
-export function renderPoster(p: PosterInput, { maxWidth, gl }: { maxWidth?: number; gl?: ArcGL } = {}) {
+export function renderPoster(p: PosterInput, { scale: at, gl }: { scale?: number; gl?: ArcGL } = {}) {
   const spec = POSTERS[p.size];
-  const scale = maxWidth ? maxWidth / spec.width : spec.scale;
+  const scale = at ?? spec.scale;
   const { width, height } = spec;
   const C = colorsFor(p.theme, p.palette);
   const m = Math.round(width * MARGIN);
@@ -61,20 +61,18 @@ export function renderPoster(p: PosterInput, { maxWidth, gl }: { maxWidth?: numb
   ctx.fillStyle = C.bgCss;
   ctx.fillRect(0, 0, out.width, out.height);
 
-  // The field of arcs, through WebGL with the same shader as the live map.
-  const own = !gl;
-  const glCanvas = own ? document.createElement("canvas") : null;
-  const r = gl ?? new ArcGL(glCanvas!, { print: true });
+  // The field of arcs, with the live map's shader, always at its full density
+  // and then scaled to the output: arcs look the same at every size and in
+  // the preview, and print stays light on memory. Text and labels below are
+  // drawn at the output resolution.
+  const r = gl ?? new ArcGL(document.createElement("canvas"));
   try {
     r.setArcs(filtered.gpu);
-    r.draw(layout, scale, fieldAlpha(p.mode, C, mapW), C.bg, C.light);
-    ctx.drawImage(r.canvasElement, m * scale, 0);
+    r.draw(layout, MAX_DPR, fieldAlpha(p.mode, C, mapW), C.bg, C.light);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(r.canvasElement, m * scale, 0, layout.width * scale, layout.height * scale);
   } finally {
-    if (own) {
-      r.dispose();
-      r.loseContext();
-      glCanvas!.width = glCanvas!.height = 0;
-    }
+    if (!gl) r.destroy();
   }
 
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -165,7 +163,7 @@ function drawFooter(ctx: CanvasRenderingContext2D, C: Colors, width: number, hei
   ctx.textAlign = "left";
   ctx.fillText("Cross-references: OpenBible.info (CC BY) · Scripture texts in the public domain", m, y);
   ctx.textAlign = "right";
-  ctx.fillText(`${SITE_HOST} · made by Raleigh`, width - m, y);
+  ctx.fillText(SITE_HOST, width - m, y);
 }
 
 /** Renders the full-size poster and returns it as a PNG file. */

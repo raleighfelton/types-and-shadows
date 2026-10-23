@@ -1,9 +1,10 @@
 // Small 2D canvas helpers shared by the map views.
+import { MAX_DPR } from "./arcGL";
 import type { Colors } from "./palette";
 
 /** Sizes the backing store only when it changes, clears, and resets state. */
 export function prep(c: HTMLCanvasElement, w: number, h: number) {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
   const W = Math.round(w * dpr);
   const H = Math.round(h * dpr);
   if (c.width !== W || c.height !== H) {

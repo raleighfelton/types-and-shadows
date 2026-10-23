@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type ArcLayout, ArcGL } from "@/lib/arcGL";
+import { ArcGL, MAX_DPR } from "@/lib/arcGL";
 import { type Mode, filterArcs } from "@/lib/arcs";
 import { type Canon, type XRef, formatRange, fromIndex } from "@/lib/bible";
 import { dot, haloText, prep, strokeLink } from "@/lib/canvas";
@@ -118,7 +118,7 @@ export default function ArcCanvas(props: Props) {
   useEffect(() => {
     const r = renderer.current;
     if (!r || !size.w) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     if (revealed.current >= 1) {
       r.draw(layout, dpr, alpha, C.bg, C.light);
       return;
