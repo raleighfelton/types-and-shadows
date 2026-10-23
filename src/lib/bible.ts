@@ -38,6 +38,18 @@ export const TRANSLATIONS = [
   { id: "ESV", name: "English Standard Version", note: "Needs an API key", available: false },
 ] as const;
 
+/** Traditional sections of the canon. Acts and Revelation stand alone, so they're not listed. */
+export const SECTIONS: { name: string; short?: string; from: string; to: string }[] = [
+  { name: "Law", from: "Gen", to: "Deut" },
+  { name: "History", from: "Josh", to: "Esth" },
+  { name: "Wisdom", from: "Job", to: "Song" },
+  { name: "Major Prophets", short: "Prophets", from: "Isa", to: "Dan" },
+  { name: "Minor Prophets", short: "Minor", from: "Hos", to: "Mal" },
+  { name: "Gospels", from: "Matt", to: "John" },
+  { name: "Letters of Paul", short: "Paul", from: "Rom", to: "Phlm" },
+  { name: "General Letters", short: "General", from: "Heb", to: "Jude" },
+];
+
 export type TranslationId = (typeof TRANSLATIONS)[number]["id"];
 
 const base = "/data";

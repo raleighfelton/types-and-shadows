@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { type ArcLayout, ArcGL } from "@/lib/arcGL";
 import { type Mode, filterArcs } from "@/lib/arcs";
-import { type Canon, type XRef, formatRange, fromIndex } from "@/lib/bible";
+import { type Canon, SECTIONS, type XRef, formatRange, fromIndex } from "@/lib/bible";
 import { dot, haloText, prep, strokeLink } from "@/lib/canvas";
-import { spreadLabels } from "@/lib/labels";
 import { type Theme, colorsFor } from "@/lib/palette";
 import { type Entry, type ThemeId, type TypeArc, THEMES, entryTip } from "@/lib/typology";
 import { useElementSize } from "@/lib/useElementSize";
@@ -48,16 +47,25 @@ const hoverKey = (h: Hover) =>
   !h ? "" : h.kind === "chapter" ? `c${h.chapter}` : h.kind === "arc" ? `a${h.a}-${h.b}` : h.kind === "entry" ? `e${h.entry}` : `b${h.book}`;
 
 const REVEAL_MS = 2600;
-/** Minimum spacing between angled book labels. */
-const LABEL_GAP = 12;
-const LABEL_ANGLE = -Math.PI / 4;
+// Rows under the chapter bars: book names, then section brackets.
+const BOOK_ROW_DY = 14; // below the tallest bar
+const SECTION_ROW_DY = 22; // below the book names
+const SECTION_TEXT_PX = 13;
+const LABEL_ROWS_HEIGHT = BOOK_ROW_DY + SECTION_ROW_DY + SECTION_TEXT_PX + 10;
+const BOOK_FONT = "500 10px";
+/** Space kept between neighboring book names. */
+const LABEL_PAD = 3;
+/** A book name may be up to this times its book's width (lets REV show). */
+const LABEL_SPILL = 1.6;
+/** Section names may overhang their bracket by this much. */
+const SECTION_OVERHANG = 10;
 
 function computeLayout(width: number, height: number, inset?: number, compact = false): ArcLayout & { barMax: number } {
   const padL = compact ? 10 : Math.max(20, width * 0.03);
   const span = width - padL * 2;
   const barMax = compact ? 8 : Math.max(26, Math.min(64, height * 0.075));
-  // Room under the chapter bars for the angled book names.
-  const below = compact ? 4 : width < 640 ? 40 : Math.max(96, height * 0.12);
+  // Room under the chapter bars for book names and section brackets.
+  const below = compact ? 4 : Math.max(LABEL_ROWS_HEIGHT + (width < 640 ? 12 : 28), height * 0.1);
   const top = inset ?? (width < 640 ? 118 : Math.max(110, height * 0.14));
   let baseY = height - barMax - below;
   // With room to spare (tall phone screens), center the half-circle.
@@ -90,15 +98,41 @@ export default function ArcCanvas(props: Props) {
   const total = canon.total;
   const xOf = (idx: number) => layout.padL + ((idx + 0.5) / total) * layout.span;
 
-  // Book labels: every book gets one, fanned out at an angle with a leader
-  // line when neighbors are too close. Phones fall back to labels that fit.
+  /** Left and right x of a run of books (inclusive). */
+  const bookSpan = (first: number, last = first) =>
+    [xOf(canon.books[first].start), xOf(canon.books[last].start + canon.books[last].verses - 1)] as const;
+
+  // Book names where they fit; under them, brackets naming each section of
+  // the canon so the crowded short books still read in context. Measured once
+  // per layout and font, then shared by drawing, hover and hit-testing.
   const labels = useMemo(() => {
-    const centers = canon.books.map((b) => layout.padL + ((b.start + b.verses / 2) / total) * layout.span);
-    const angled = layout.span / canon.books.length >= LABEL_GAP;
-    const at = angled ? spreadLabels(centers, LABEL_GAP, layout.padL + 4, layout.padL + layout.span) : centers;
-    const top = layout.baseY + layout.barMax + 8;
-    return { angled, centers, at, top, anchorY: top + 12, lengths: new Array<number>(centers.length).fill(0) };
-  }, [canon, layout, total]);
+    const y = layout.baseY + layout.barMax + BOOK_ROW_DY;
+    const sectionY = y + SECTION_ROW_DY;
+    const empty = { y, sectionY, bottom: sectionY + SECTION_TEXT_PX + 6, books: [], sections: [] };
+    if (compact || !size.w || typeof document === "undefined") return empty;
+    const ctx = document.createElement("canvas").getContext("2d")!;
+    ctx.font = `${BOOK_FONT} ${C.serif}`;
+    let lastRight = -Infinity;
+    const books = canon.books.map((b, i) => {
+      const [x1, x2] = bookSpan(i);
+      const x = (x1 + x2) / 2;
+      const w = ctx.measureText(b.short.toUpperCase()).width;
+      const shown = w <= (x2 - x1) * LABEL_SPILL && x - w / 2 - LABEL_PAD >= lastRight;
+      if (shown) lastRight = x + w / 2 + LABEL_PAD;
+      return { x, shown };
+    });
+    ctx.font = `italic ${SECTION_TEXT_PX}px ${C.display}`;
+    const index = (osis: string) => canon.books.findIndex((b) => b.osis === osis);
+    const sections = SECTIONS.flatMap((s) => {
+      const [l, r] = bookSpan(index(s.from), index(s.to));
+      const [x1, x2] = [l + 2, r - 2];
+      // An unnamed bracket reads as noise, so skip it when no name fits.
+      const name = [s.name, s.short].find((n) => n && ctx.measureText(n).width <= x2 - x1 + SECTION_OVERHANG);
+      return name ? [{ x1, x2, name }] : [];
+    });
+    return { ...empty, books, sections };
+    // fontsReady: names are re-measured once the web fonts load.
+  }, [canon, layout, C, compact, size.w, fontsReady]);
 
   const verseChapter = canon.verseChapter;
   const filtered = useMemo(() => filterArcs(canon, arcs, minVotes), [canon, arcs, minVotes]);
@@ -174,23 +208,27 @@ export default function ArcCanvas(props: Props) {
     if (compact) return;
 
     // labels
-    ctx.font = `500 10px ${C.serif}`;
+    ctx.font = `${BOOK_FONT} ${C.serif}`;
     ctx.fillStyle = C.text;
-    ctx.strokeStyle = C.text;
-    ctx.lineWidth = 0.6;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     canon.books.forEach((b, i) => {
-      const label = b.short.toUpperCase();
-      const w = ctx.measureText(label).width;
-      labels.lengths[i] = w;
-      if (!labels.angled) {
-        if (w + 8 > b.verses * pxPerVerse) return;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.fillText(label, labels.centers[i], labels.top + 6);
-        return;
-      }
-      drawAngledLabel(ctx, label, labels.centers[i], labels.at[i], labels.top, labels.anchorY);
+      if (labels.books[i]?.shown) ctx.fillText(b.short.toUpperCase(), labels.books[i].x, labels.y);
     });
+    // section brackets
+    ctx.font = `italic ${SECTION_TEXT_PX}px ${C.display}`;
+    ctx.strokeStyle = C.text;
+    ctx.lineWidth = 0.75;
+    for (const { x1, x2, name } of labels.sections) {
+      const y = labels.sectionY;
+      ctx.beginPath();
+      ctx.moveTo(x1, y - 4);
+      ctx.lineTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.lineTo(x2, y - 4);
+      ctx.stroke();
+      ctx.fillText(name, (x1 + x2) / 2, y + 4);
+    }
     // Testament divider
     const ntX = xOf(canon.books[39].start) - pxPerVerse / 2;
     ctx.fillStyle = C.text;
@@ -313,18 +351,15 @@ export default function ArcCanvas(props: Props) {
     }
 
     if (hover?.kind === "book") {
-      const bk = canon.books[hover.book];
-      const x1 = xOf(bk.start);
-      const x2 = xOf(bk.start + bk.verses - 1);
+      const [x1, x2] = bookSpan(hover.book);
       ctx.globalAlpha = 0.9;
       ctx.fillStyle = C.link;
       ctx.fillRect(x1, baseY - 1, Math.max(2, x2 - x1), 2);
-      if (labels.angled) {
+      if (labels.books[hover.book]?.shown) {
         ctx.font = `600 10px ${C.serif}`;
-        ctx.fillStyle = C.link;
-        ctx.strokeStyle = C.link;
-        ctx.lineWidth = 1;
-        drawAngledLabel(ctx, bk.short.toUpperCase(), labels.centers[hover.book], labels.at[hover.book], labels.top, labels.anchorY, C.outline);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        haloText(ctx, canon.books[hover.book].short.toUpperCase(), labels.books[hover.book].x, labels.y, C.link, C);
       }
     }
 
@@ -358,21 +393,8 @@ export default function ArcCanvas(props: Props) {
     if (y >= baseY - 8 && y <= baseY + barMax + 8) {
       return { kind: "chapter", chapter: verseChapter[verse], verse };
     }
-    if (y > baseY + barMax + 8 && y <= baseY + barMax + 64) {
-      if (!labels.angled) return { kind: "book", book: canon.verseBook[verse] };
-      // Nearest angled label: distance to the segment the text runs along.
-      const dx = Math.cos(LABEL_ANGLE);
-      const dy = Math.sin(LABEL_ANGLE);
-      let best = -1;
-      let bestD = 7;
-      labels.at.forEach((ax, i) => {
-        const px = x - ax;
-        const py = y - labels.anchorY;
-        const t = Math.max(-labels.lengths[i] - 4, Math.min(4, px * dx + py * dy));
-        const d = Math.hypot(px - t * dx, py - t * dy);
-        if (d < bestD) [best, bestD] = [i, d];
-      });
-      return best >= 0 ? { kind: "book", book: best } : null;
+    if (y > baseY + barMax + 8 && y <= labels.bottom) {
+      return { kind: "book", book: canon.verseBook[verse] };
     }
     if (y > baseY) return null;
     // distance to an arc ≈ |normalized radius - 1| * r
@@ -475,34 +497,4 @@ export default function ArcCanvas(props: Props) {
       )}
     </div>
   );
-}
-
-/** Leader line from the book's center down to its label, then the label at 45°. */
-function drawAngledLabel(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  center: number,
-  at: number,
-  top: number,
-  anchorY: number,
-  halo?: string,
-) {
-  ctx.beginPath();
-  ctx.moveTo(center, top);
-  ctx.lineTo(at, anchorY - 3);
-  ctx.stroke();
-  ctx.save();
-  ctx.translate(at, anchorY);
-  ctx.rotate(LABEL_ANGLE);
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  if (halo) {
-    ctx.save();
-    ctx.strokeStyle = halo;
-    ctx.lineWidth = 3;
-    ctx.strokeText(text, 0, 0);
-    ctx.restore();
-  }
-  ctx.fillText(text, 0, 0);
-  ctx.restore();
 }

@@ -20,7 +20,7 @@ import { useMediaQuery } from "@/lib/useMediaQuery";
 import ArcCanvas from "./ArcCanvas";
 import BookPicker from "./BookPicker";
 import BookView from "./BookView";
-import { ModeTabs, PassageSearch, VoteFilter } from "./Controls";
+import { Credit, ModeTabs, PassageSearch, VoteFilter } from "./Controls";
 import MobileShell, { type Tab } from "./MobileShell";
 import Reader from "./Reader";
 import ReadingSettings from "./ReadingSettings";
@@ -300,14 +300,17 @@ export default function Explorer() {
         </header>
 
         {book === null && !panel && (
-          <p className="pointer-events-none absolute bottom-4 right-[3vw] hidden text-right font-display text-[15px] italic text-muted lg:block">
+          <p className="pointer-events-none absolute right-[3vw] top-24 hidden max-w-[19rem] text-right font-display text-[15px] italic leading-snug text-muted lg:block">
             “I have set My rainbow in the clouds, and it will be a sign of the covenant between Me and the earth.”
-            <span className="smallcaps ml-3 not-italic font-serif text-[11px] text-muted">Genesis 9:13</span>
+            <span className="smallcaps mt-1 block not-italic font-serif text-[11px] text-muted">Genesis 9:13</span>
           </p>
         )}
+        <p className="pointer-events-auto absolute bottom-4 right-[3vw] hidden text-[11px] italic text-muted md:block">
+          <Credit withSource />
+        </p>
         <p className="pointer-events-auto absolute bottom-4 left-[3vw] hidden text-[11px] italic text-muted md:block">
           Cross-references{" "}
-          <a className="underline decoration-parchment/20 hover:text-parchment" href="https://www.openbible.info/labs/cross-references/">
+          <a className="quiet-link" href="https://www.openbible.info/labs/cross-references/">
             OpenBible.info
           </a>{" "}
           (CC BY) · Scripture texts in the public domain

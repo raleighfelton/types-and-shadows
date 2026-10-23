@@ -122,3 +122,26 @@ export function ZoomTrail({ name, onBack, size = "sm" }: { name: string; onBack:
     </nav>
   );
 }
+
+export const SITE_URL = "https://raleighfelton.com";
+export const SOURCE_URL = "https://github.com/raleighfelton/types-and-shadows";
+
+/** "Made by Raleigh", optionally with a link to the source. */
+export function Credit({ withSource }: { withSource?: boolean }) {
+  return (
+    <>
+      Made by{" "}
+      <a className="quiet-link" href={SITE_URL}>
+        Raleigh
+      </a>
+      {withSource && (
+        <>
+          {" · "}
+          <a className="quiet-link" href={SOURCE_URL}>
+            open source
+          </a>
+        </>
+      )}
+    </>
+  );
+}

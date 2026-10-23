@@ -184,7 +184,7 @@ export default function MobileShell(p: Props) {
                 </div>
               </>
             ) : (
-              <TypeIndex canon={canon} translation={p.translation} entries={entries} themeFilter={p.themeFilter} onTheme={p.onTheme} onOpenEntry={p.onOpenEntry} />
+              <TypeIndex showCredit canon={canon} translation={p.translation} entries={entries} themeFilter={p.themeFilter} onTheme={p.onTheme} onOpenEntry={p.onOpenEntry} />
             )}
           </section>
         )}

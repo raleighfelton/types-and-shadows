@@ -3,6 +3,7 @@
 import { type Entry, type ThemeId, THEMES, TIERS } from "@/lib/typology";
 import { useMemo } from "react";
 import { type Canon, type TranslationId, parsePassage } from "@/lib/bible";
+import { Credit } from "./Controls";
 import Passage, { useVerses } from "./Passage";
 
 export function TypeEntry({
@@ -135,9 +136,12 @@ export function TypeIndex({
   themeFilter,
   onTheme,
   onOpenEntry,
+  showCredit,
 }: {
   canon: Canon;
   translation: TranslationId;
+  /** Phones show the credit here; desktop shows it in the page footer. */
+  showCredit?: boolean;
   entries: Entry[];
   themeFilter: ThemeId | null;
   onTheme: (t: ThemeId | null) => void;
@@ -216,6 +220,12 @@ export function TypeIndex({
           explicitly. If the text doesn&apos;t say it, it isn&apos;t drawn.
         </p>
       </details>
+
+      {showCredit && (
+        <p className="mt-10 border-t border-parchment/10 pt-4 text-[12px] italic text-muted">
+          <Credit withSource />
+        </p>
+      )}
     </div>
   );
 }
