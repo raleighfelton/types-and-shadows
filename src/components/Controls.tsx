@@ -4,30 +4,60 @@
 import { useState } from "react";
 import { type Mode, VOTE_STEPS } from "@/lib/arcs";
 import { type Canon, parseQuery, toIndex } from "@/lib/bible";
+import { AUTHOR_URL, SOURCE_URL } from "@/lib/site";
 import InfoTip from "./InfoTip";
 
-export function ModeTabs({ mode, onMode, compact }: { mode: Mode; onMode: (m: Mode) => void; compact?: boolean }) {
-  const tabs = [
-    ["types", compact ? "Types" : "Types & Shadows"],
-    ["all", compact ? "All links" : "Every cross-reference"],
-  ] as const;
+/** A row of mutually exclusive options in a pill. */
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  role,
+  size = "md",
+  stretch,
+}: {
+  options: readonly (readonly [T, string, string?])[]; // [value, label, title]
+  value: T;
+  onChange: (v: T) => void;
+  /** "tablist" for view switches; otherwise buttons with aria-pressed. */
+  role?: "tablist";
+  size?: "sm" | "md";
+  stretch?: boolean;
+}) {
   return (
-    <div role="tablist" className="inline-flex rounded-full border border-parchment/15 p-[3px]">
-      {tabs.map(([m, label]) => (
+    <div role={role} className={`${stretch ? "flex" : "inline-flex"} rounded-full border border-parchment/15 p-[3px]`}>
+      {options.map(([v, label, title]) => (
         <button
-          key={m}
-          role="tab"
+          key={v}
           type="button"
-          aria-selected={mode === m}
-          onClick={() => onMode(m)}
-          className={`smallcaps rounded-full text-[12px] transition-colors ${compact ? "px-3 py-[5px]" : "px-4 py-[6px]"} ${
-            mode === m ? "bg-gold text-ink" : "text-soft hover:text-parchment"
-          }`}
+          title={title}
+          role={role ? "tab" : undefined}
+          aria-selected={role ? value === v : undefined}
+          aria-pressed={role ? undefined : value === v}
+          onClick={() => onChange(v)}
+          className={`rounded-full transition-colors ${stretch ? "flex-1" : ""} ${
+            size === "sm" ? "smallcaps px-3 py-[5px] text-meta" : "px-4 py-[6px] text-[13px]"
+          } ${value === v ? "bg-gold text-ink" : "text-soft hover:text-parchment"}`}
         >
           {label}
         </button>
       ))}
     </div>
+  );
+}
+
+export function ModeTabs({ mode, onMode, compact }: { mode: Mode; onMode: (m: Mode) => void; compact?: boolean }) {
+  return (
+    <Segmented
+      role="tablist"
+      size="sm"
+      value={mode}
+      onChange={onMode}
+      options={[
+        ["types", compact ? "Types" : "Types & Shadows"],
+        ["all", compact ? "All links" : "Every cross-reference"],
+      ]}
+    />
   );
 }
 
@@ -54,7 +84,7 @@ export function VoteFilter({
         aria-label="Minimum votes"
         className={`${compact ? "w-24" : "w-28"} accent-[var(--color-gold)]`}
       />
-      <span className={`smallcaps text-muted ${compact ? "text-[11px]" : "text-[12px]"}`}>
+      <span className="smallcaps text-meta text-muted">
         {visible.toLocaleString()} {compact ? "links" : "connections"} · {min}+ {min === 1 ? "vote" : "votes"}
       </span>
       <InfoTip label="What does this slider do?" align={compact ? "right" : "left"}>
@@ -123,21 +153,19 @@ export function ZoomTrail({ name, onBack, size = "sm" }: { name: string; onBack:
   );
 }
 
-export const SITE_URL = "https://raleighfelton.com";
-export const SOURCE_URL = "https://github.com/raleighfelton/types-and-shadows";
 
 /** "Made by Raleigh", optionally with a link to the source. */
 export function Credit({ withSource }: { withSource?: boolean }) {
   return (
     <>
       Made by{" "}
-      <a className="quiet-link" href={SITE_URL}>
+      <a className="quiet-link" href={AUTHOR_URL} target="_blank" rel="noopener noreferrer">
         Raleigh
       </a>
       {withSource && (
         <>
           {" · "}
-          <a className="quiet-link" href={SOURCE_URL}>
+          <a className="quiet-link" href={SOURCE_URL} target="_blank" rel="noopener noreferrer">
             open source
           </a>
         </>

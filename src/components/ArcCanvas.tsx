@@ -51,8 +51,12 @@ const REVEAL_MS = 2600;
 const BOOK_ROW_DY = 14; // below the tallest bar
 const SECTION_ROW_DY = 22; // below the book names
 const SECTION_TEXT_PX = 13;
-const LABEL_ROWS_HEIGHT = BOOK_ROW_DY + SECTION_ROW_DY + SECTION_TEXT_PX + 10;
-const BOOK_FONT = "500 10px";
+const TESTAMENT_ROW_DY = 22; // below the section names (wide screens only)
+const TESTAMENT_TEXT_PX = 15;
+/** Height of the label rows under the bars; narrow screens skip the testament row. */
+const labelRowsHeight = (wide: boolean) =>
+  BOOK_ROW_DY + SECTION_ROW_DY + (wide ? TESTAMENT_ROW_DY + TESTAMENT_TEXT_PX : SECTION_TEXT_PX) + 10;
+const BOOK_FONT = "500 11px";
 /** Space kept between neighboring book names. */
 const LABEL_PAD = 3;
 /** A book name may be up to this times its book's width (lets REV show). */
@@ -65,7 +69,7 @@ function computeLayout(width: number, height: number, inset?: number, compact = 
   const span = width - padL * 2;
   const barMax = compact ? 8 : Math.max(26, Math.min(64, height * 0.075));
   // Room under the chapter bars for book names and section brackets.
-  const below = compact ? 4 : Math.max(LABEL_ROWS_HEIGHT + (width < 640 ? 12 : 28), height * 0.1);
+  const below = compact ? 4 : Math.max(labelRowsHeight(width >= 640) + (width < 640 ? 12 : 28), height * 0.1);
   const top = inset ?? (width < 640 ? 118 : Math.max(110, height * 0.14));
   let baseY = height - barMax - below;
   // With room to spare (tall phone screens), center the half-circle.
@@ -108,7 +112,8 @@ export default function ArcCanvas(props: Props) {
   const labels = useMemo(() => {
     const y = layout.baseY + layout.barMax + BOOK_ROW_DY;
     const sectionY = y + SECTION_ROW_DY;
-    const empty = { y, sectionY, bottom: sectionY + SECTION_TEXT_PX + 6, books: [], sections: [] };
+    const testamentY = sectionY + TESTAMENT_ROW_DY;
+    const empty = { y, sectionY, testamentY, bottom: sectionY + SECTION_TEXT_PX + 6, books: [], sections: [] };
     if (compact || !size.w || typeof document === "undefined") return empty;
     const ctx = document.createElement("canvas").getContext("2d")!;
     ctx.font = `${BOOK_FONT} ${C.serif}`;
@@ -232,19 +237,18 @@ export default function ArcCanvas(props: Props) {
     // Testament divider
     const ntX = xOf(canon.books[39].start) - pxPerVerse / 2;
     ctx.fillStyle = C.text;
-    ctx.fillRect(ntX, baseY - 6, 1, barMax + 12);
-    if (size.w >= 640) {
-      // Above the baseline, either side of the divider, clear of the labels.
-      ctx.font = `italic 15px ${C.display}`;
-      ctx.textBaseline = "bottom";
-      for (const [text, align, x] of [
-        ["Old Testament", "right", ntX - 8],
-        ["New Testament", "left", ntX + 8],
-      ] as const) {
-        ctx.textAlign = align;
-        haloText(ctx, text, x, baseY - 8, `rgb(${C.fg})`, C);
-      }
+    if (size.w < 640) {
+      ctx.fillRect(ntX, baseY - 6, 1, barMax + 12);
+      return;
     }
+    // The divider runs down to a row below the sections, labeled either side.
+    ctx.fillRect(ntX, baseY - 6, 1, labels.testamentY - baseY + 6 + TESTAMENT_TEXT_PX);
+    ctx.font = `italic ${TESTAMENT_TEXT_PX}px ${C.display}`;
+    ctx.textBaseline = "top";
+    ctx.textAlign = "right";
+    ctx.fillText("← Old Testament", ntX - 10, labels.testamentY);
+    ctx.textAlign = "left";
+    ctx.fillText("New Testament →", ntX + 10, labels.testamentY);
   }, [layout, canon, size, fontsReady, compact, C, labels]);
 
   // Overlay: type arcs, focus, hover.
@@ -356,7 +360,7 @@ export default function ArcCanvas(props: Props) {
       ctx.fillStyle = C.link;
       ctx.fillRect(x1, baseY - 1, Math.max(2, x2 - x1), 2);
       if (labels.books[hover.book]?.shown) {
-        ctx.font = `600 10px ${C.serif}`;
+        ctx.font = `600 11px ${C.serif}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         haloText(ctx, canon.books[hover.book].short.toUpperCase(), labels.books[hover.book].x, labels.y, C.link, C);

@@ -13,6 +13,8 @@
      (4.5:1) on every palette; the light theme needs more ink to get there. */
   --color-muted: color-mix(in srgb, var(--color-parchment) var(--muted-mix), var(--color-ink-2));
   --color-soft: color-mix(in srgb, var(--color-parchment) var(--soft-mix), var(--color-ink-2));
+  /* Small labels and metadata (refs, counts, captions). */
+  --text-meta: 12px;
   --font-display: var(--font-cormorant), Georgia, serif;
   --font-serif: var(--font-garamond), Georgia, serif;
 }
@@ -267,9 +269,10 @@ body {
   background: color-mix(in oklab, var(--cc) 20%, transparent);
 }
 
+/* Menus and dialogs: movement only. A fade-in can leave them invisible if
+   the browser is slow to start the animation (busy canvas behind them). */
 @keyframes rise {
   from {
-    opacity: 0;
     transform: translateY(-4px);
   }
 }

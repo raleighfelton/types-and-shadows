@@ -149,6 +149,10 @@ arcs.forEach(([a, b, v], i) => {
 });
 writeFileSync(join(OUT, "arcs.bin"), Buffer.from(buf.buffer));
 
+// og-arcs.json: the most-voted arcs, a light backdrop for share images.
+const ogArcs = [...arcs].sort((x, y) => y[2] - x[2]).slice(0, 900);
+writeFileSync(join(OUT, "og-arcs.json"), JSON.stringify({ total: TOTAL, arcs: ogArcs }));
+
 const xrefDir = join(OUT, "xref");
 mkdirSync(xrefDir, { recursive: true });
 byBook.forEach((bucket, i) => {

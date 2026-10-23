@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible_Next, Cormorant_Garamond, EB_Garamond, Literata } from "next/font/google";
 import { settingsScript } from "@/lib/settingsConfig";
+import { SITE_NAME, SITE_URL, TAGLINE } from "@/lib/site";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -33,22 +34,20 @@ const atkinson = Atkinson_Hyperlegible_Next({
   adjustFontFallback: false,
 });
 
-const siteUrl = "https://typesandshadows.app";
-const description =
-  "The Bible is the original hypertext. An interactive map of its types, shadows and cross-references, where every curated connection is one the New Testament makes itself.";
+const description = `${TAGLINE}. An interactive map of its types, shadows and cross-references, where every curated connection is one the New Testament makes itself.`;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: "Types & Shadows · The Bible is the original hypertext",
+  metadataBase: new URL(SITE_URL),
+  title: `${SITE_NAME} · ${TAGLINE}`,
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    url: siteUrl,
-    siteName: "Types & Shadows",
-    title: "Types & Shadows",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: SITE_NAME,
     description,
   },
-  twitter: { card: "summary_large_image", title: "Types & Shadows", description },
+  twitter: { card: "summary_large_image", title: SITE_NAME, description },
   description,
 };
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePopover } from "@/lib/usePopover";
+import { Segmented } from "./Controls";
 import { FONTS, PALETTES, SIZES, type Settings } from "@/lib/settings";
 
 export default function ReadingSettings({
@@ -12,11 +13,7 @@ export default function ReadingSettings({
 }) {
   const { open, setOpen, ref } = usePopover();
 
-  const label = "smallcaps mb-2 block text-[11px] text-muted";
-  const pill = (on: boolean) =>
-    `flex-1 rounded-full px-3 py-[6px] text-[13px] transition-colors ${
-      on ? "bg-gold text-ink" : "text-soft hover:text-parchment"
-    }`;
+  const label = "smallcaps mb-2 block text-meta text-muted";
 
   return (
     <div ref={ref} className="relative">
@@ -34,13 +31,16 @@ export default function ReadingSettings({
         <div role="dialog" aria-label="Reading settings" className="popover absolute right-0 top-[calc(100%+8px)] z-40 w-[18.5rem] space-y-5 p-4">
           <div>
             <span className={label}>Theme</span>
-            <div className="flex rounded-full border border-parchment/15 p-[3px]">
-              {(["auto", "light", "dark"] as const).map((t) => (
-                <button key={t} type="button" aria-pressed={settings.theme === t} onClick={() => onChange({ theme: t })} className={pill(settings.theme === t)}>
-                  {t === "auto" ? "Auto" : t === "light" ? "Light" : "Dark"}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              stretch
+              value={settings.theme}
+              onChange={(theme) => onChange({ theme })}
+              options={[
+                ["auto", "Auto"],
+                ["light", "Light"],
+                ["dark", "Dark"],
+              ]}
+            />
           </div>
 
           <div>
@@ -67,7 +67,7 @@ export default function ReadingSettings({
                       <i className="absolute left-[9px] top-[9px] h-2 w-2 rounded-full" style={{ background: pal.light[1] }} />
                       <i className="absolute bottom-[9px] right-[9px] h-2 w-2 rounded-full" style={{ background: pal.dark[1] }} />
                     </span>
-                    <span className={`text-center text-[11px] leading-tight ${on ? "text-parchment" : "text-muted"}`}>
+                    <span className={`text-center text-meta leading-tight ${on ? "text-parchment" : "text-muted"}`}>
                       {pal.name}
                     </span>
                   </button>
@@ -94,7 +94,7 @@ export default function ReadingSettings({
                     <span className="block text-[18px] leading-tight text-parchment" style={{ fontFamily: f.family }}>
                       {f.name} <span className="text-soft">· In the beginning was the Word</span>
                     </span>
-                    <span className="block text-[12px] italic text-muted">{f.note}</span>
+                    <span className="block text-meta italic text-muted">{f.note}</span>
                   </button>
                 );
               })}

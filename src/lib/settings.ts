@@ -2,18 +2,16 @@
 
 import { useEffect, useState } from "react";
 import type { Theme } from "./palette";
-import { DEFAULTS, type FontId, type PaletteId, SETTINGS_KEY, type Settings, applySettings } from "./settingsConfig";
+import { DEFAULTS, type FontId, PALETTE_COLORS, type PaletteId, SETTINGS_KEY, type Settings, applySettings } from "./settingsConfig";
 import { useMediaQuery } from "./useMediaQuery";
 
-export { SIZES, type Settings } from "./settingsConfig";
+export { SIZES, type PaletteId, type Settings } from "./settingsConfig";
 
-/** Swatches for the menu: [ground, accent] in light and dark. Match globals.css. */
-export const PALETTES: { id: PaletteId; name: string; light: [string, string]; dark: [string, string] }[] = [
-  { id: "lapis", name: "Vellum & Lapis", light: ["#f6f5f1", "#2b4c9b"], dark: ["#0e1220", "#8ea8e8"] },
-  { id: "parchment", name: "Parchment", light: ["#f4eee0", "#7f4c08"], dark: ["#14110e", "#d9a441"] },
-  { id: "rubric", name: "Linen & Rubric", light: ["#f5f4f0", "#a11d2b"], dark: ["#121214", "#e0687c"] },
-  { id: "plain", name: "Plain", light: ["#fbfbf9", "#131416"], dark: ["#0a0a0b", "#f2f2f0"] },
-];
+/** Swatches for the menu: [ground, accent] in light and dark. */
+export const PALETTES = (Object.keys(PALETTE_COLORS) as PaletteId[]).map((id) => {
+  const { name, light, dark } = PALETTE_COLORS[id];
+  return { id, name, light: [light.ink, light.accent] as const, dark: [dark.ink, dark.accent] as const };
+});
 
 export const FONTS: { id: FontId; name: string; note: string; family: string }[] = [
   { id: "classic", name: "Classic", note: "EB Garamond", family: "var(--font-garamond)" },

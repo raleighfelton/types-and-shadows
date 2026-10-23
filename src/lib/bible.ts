@@ -29,8 +29,8 @@ export type VerseRef = { book: number; chapter: number; verse: number };
 export type XRef = [number, number, number];
 
 export const TRANSLATIONS = [
-  { id: "BSB", name: "Berean Standard Bible", note: "Modern · public domain", available: true },
   { id: "KJV", name: "King James Version", note: "1769 · public domain", available: true },
+  { id: "BSB", name: "Berean Standard Bible", note: "Modern · public domain", available: true },
   { id: "ASV", name: "American Standard Version", note: "1901 · public domain", available: true },
   { id: "YLT", name: "Young's Literal Translation", note: "1898 · word for word", available: true },
   { id: "Darby", name: "Darby Translation", note: "1890 · public domain", available: true },
@@ -58,24 +58,27 @@ let canonPromise: Promise<Canon> | null = null;
 export function loadCanon(): Promise<Canon> {
   canonPromise ??= fetch(`${base}/books.json`)
     .then((r) => r.json())
-    .then(({ total, books }: { total: number; books: Book[] }) => {
-      const chapterStarts: number[] = [];
-      const verseBook = new Uint8Array(total);
-      const verseChapter = new Uint16Array(total);
-      books.forEach((b, bi) => {
-        b.firstChapter = chapterStarts.length;
-        let i = b.start;
-        for (const n of b.chapters) {
-          verseChapter.fill(chapterStarts.length, i, i + n);
-          chapterStarts.push(i);
-          i += n;
-        }
-        b.verses = i - b.start;
-        verseBook.fill(bi, b.start, i);
-      });
-      return { total, books, chapterStarts, verseBook, verseChapter };
-    });
+    .then(buildCanon);
   return canonPromise;
+}
+
+/** Builds the canon and its lookups from books.json. */
+export function buildCanon({ total, books }: { total: number; books: Book[] }): Canon {
+  const chapterStarts: number[] = [];
+  const verseBook = new Uint8Array(total);
+  const verseChapter = new Uint16Array(total);
+  books.forEach((b, bi) => {
+    b.firstChapter = chapterStarts.length;
+    let i = b.start;
+    for (const n of b.chapters) {
+      verseChapter.fill(chapterStarts.length, i, i + n);
+      chapterStarts.push(i);
+      i += n;
+    }
+    b.verses = i - b.start;
+    verseBook.fill(bi, b.start, i);
+  });
+  return { total, books, chapterStarts, verseBook, verseChapter };
 }
 
 let arcsPromise: Promise<Int16Array> | null = null;
@@ -117,6 +120,20 @@ export function fromIndex(canon: Canon, idx: number): VerseRef {
   const book = canon.verseBook[idx];
   const ch = canon.verseChapter[idx];
   return { book, chapter: ch - canon.books[book].firstChapter + 1, verse: idx - canon.chapterStarts[ch] + 1 };
+}
+
+/** A verse as a URL-safe id, e.g. "John.3.14". */
+export function refId(canon: Canon, idx: number): string {
+  const r = fromIndex(canon, idx);
+  return `${canon.books[r.book].osis}.${r.chapter}.${r.verse}`;
+}
+
+/** Parses "John.3.14" (verse optional) into a global verse index, or null. */
+export function parseRefId(canon: Canon, id: string): number | null {
+  const [osis, c, v] = id.split(".");
+  const book = canon.books.findIndex((b) => b.osis === osis);
+  if (book < 0 || !(+c >= 1 && +c <= canon.books[book].chapters.length)) return null;
+  return toIndex(canon, clampRef(canon, book, +c, +v));
 }
 
 /** Clamps a possibly out-of-range chapter/verse into a real reference. */

@@ -30,7 +30,7 @@ export default function InfoTip({
         // Mouse users already opened it by hovering; a click shouldn't close it.
         onPointerDown={(e) => (pointer.current = e.pointerType)}
         onClick={() => setOpen((o) => (pointer.current === "mouse" ? true : !o))}
-        className="grid h-[18px] w-[18px] place-items-center rounded-full border border-parchment/25 font-display text-[12px] italic leading-none text-soft hover:border-parchment/60 hover:text-parchment"
+        className="grid h-[18px] w-[18px] place-items-center rounded-full border border-parchment/25 font-display text-meta italic leading-none text-soft hover:border-parchment/60 hover:text-parchment"
       >
         i
       </button>

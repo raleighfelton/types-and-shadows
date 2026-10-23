@@ -7,10 +7,12 @@ import {
   type XRef,
   formatRange,
   loadBookText,
+  refId,
   toIndex,
 } from "@/lib/bible";
 import { type Entry, THEMES, entriesTouching } from "@/lib/typology";
 import { VerseText, useVerses } from "./Passage";
+import ShareSheet from "./ShareSheet";
 
 type Props = {
   canon: Canon;
@@ -93,7 +95,7 @@ export default function Reader(p: Props) {
           <button
             type="button"
             onClick={() => p.onExploreBook(book)}
-            className="smallcaps mt-2 text-[11px] text-muted hover:text-gold"
+            className="smallcaps mt-2 text-meta text-muted hover:text-gold"
           >
             Where {b.name} connects ›
           </button>
@@ -163,7 +165,7 @@ export default function Reader(p: Props) {
                 className="type-link mb-3 block w-full text-left"
                 style={{ "--c": THEMES[e.theme].color } as React.CSSProperties}
               >
-                <span className="smallcaps text-[11px] text-muted">Type &amp; shadow · {THEMES[e.theme].label}</span>
+                <span className="smallcaps text-meta text-muted">Type &amp; shadow · {THEMES[e.theme].label}</span>
                 <span className="block font-display text-xl text-parchment">{e.title} →</span>
               </button>
             );
@@ -181,6 +183,7 @@ export default function Reader(p: Props) {
                     key={`${a}-${z}`}
                     canon={canon}
                     translation={translation}
+                    origin={focus!}
                     from={a}
                     to={z}
                     votes={votes}
@@ -200,7 +203,7 @@ export default function Reader(p: Props) {
                   Show more · {xrefs.length - shown} left
                 </button>
               )}
-              <p className="mt-4 text-[11px] italic leading-snug text-muted">
+              <p className="mt-4 text-meta italic leading-snug text-muted">
                 Cross-references are community-ranked by OpenBible.info. They are study aids, not part of the curated types.
               </p>
             </>
@@ -214,6 +217,7 @@ export default function Reader(p: Props) {
 function XrefItem({
   canon,
   translation,
+  origin,
   from,
   to,
   votes,
@@ -224,6 +228,8 @@ function XrefItem({
 }: {
   canon: Canon;
   translation: TranslationId;
+  /** The focused verse this cross-reference comes from. */
+  origin: number;
   from: number;
   to: number;
   votes: number;
@@ -235,6 +241,7 @@ function XrefItem({
   // Collapsed: a short preview. Selected: the whole passage (capped for very long ranges).
   const end = selected ? Math.min(to, from + 11) : Math.min(to, from + 2);
   const verses = useVerses(canon, translation, from, end);
+  const [sharing, setSharing] = useState(false);
   return (
     <li
       className={`xref group ${selected ? "is-selected" : ""}`}
@@ -244,7 +251,7 @@ function XrefItem({
       <button type="button" onClick={onSelect} aria-pressed={selected} className="block w-full text-left">
         <span className="flex items-baseline justify-between gap-3">
           <span className="xref-ref font-display text-lg">{formatRange(canon, from, to)}</span>
-          <span className="smallcaps shrink-0 text-[10px] text-muted" title="OpenBible.info votes">
+          <span className="smallcaps shrink-0 text-meta text-muted" title="OpenBible.info votes">
             {votes} {votes === 1 ? "vote" : "votes"}
           </span>
         </span>
@@ -267,9 +274,22 @@ function XrefItem({
         )}
       </button>
       {selected && (
-        <button type="button" onClick={() => onGo(from)} className="smallcaps mt-1 text-[11px] text-[var(--link)] hover:text-parchment">
-          Read {formatRange(canon, from, from)} in context ›
-        </button>
+        <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
+          <button type="button" onClick={() => onGo(from)} className="smallcaps text-meta text-[var(--link)] hover:text-parchment">
+            Read {formatRange(canon, from, from)} in context ›
+          </button>
+          <button type="button" onClick={() => setSharing(true)} className="smallcaps text-meta text-[var(--link)] hover:text-parchment">
+            Share this connection
+          </button>
+        </div>
+      )}
+      {sharing && (
+        <ShareSheet
+          target={{ a: refId(canon, origin), b: refId(canon, from), be: to > from ? refId(canon, to) : undefined }}
+          name={`${formatRange(canon, origin, origin)} and ${formatRange(canon, from, to)}`}
+          translation={translation}
+          onClose={() => setSharing(false)}
+        />
       )}
     </li>
   );

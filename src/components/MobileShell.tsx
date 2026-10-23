@@ -218,7 +218,7 @@ export default function MobileShell(p: Props) {
                 <p className="font-display text-2xl leading-snug text-parchment/80">
                   Tap any chapter on the map to read it, or search above.
                 </p>
-                <p className="smallcaps mt-8 text-[11px] text-muted">Good places to start</p>
+                <p className="smallcaps mt-8 text-meta text-muted">Good places to start</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {SUGGESTIONS.map((s) => (
                     <button key={s} type="button" onClick={() => go(s)} className="control text-[15px]">
@@ -253,7 +253,7 @@ export default function MobileShell(p: Props) {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
               {icon}
             </svg>
-            <span className="smallcaps text-[11px]">{label}</span>
+            <span className="smallcaps text-meta">{label}</span>
           </button>
         ))}
       </nav>

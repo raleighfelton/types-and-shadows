@@ -6,7 +6,7 @@ export default function MapTip({ x, y, title, sub }: { x: number; y: number; tit
       style={{ left: x, top: y }}
     >
       <div className="font-display text-lg leading-tight text-parchment">{title}</div>
-      <div className="smallcaps text-[11px] text-muted">{sub}</div>
+      <div className="smallcaps text-meta text-muted">{sub}</div>
     </div>
   );
 }

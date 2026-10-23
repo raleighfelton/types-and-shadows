@@ -7,12 +7,11 @@ import {
   type TranslationId,
   type XRef,
   TRANSLATIONS,
-  clampRef,
   fromIndex,
   loadArcs,
   loadCanon,
   loadXrefs,
-  toIndex,
+  parseRefId,
 } from "@/lib/bible";
 import { useReadingSettings } from "@/lib/settings";
 import { type Entry, type ThemeId, resolveEntries, typeArcs as buildTypeArcs } from "@/lib/typology";
@@ -22,6 +21,7 @@ import BookPicker from "./BookPicker";
 import BookView from "./BookView";
 import { Credit, ModeTabs, PassageSearch, VoteFilter } from "./Controls";
 import MobileShell, { type Tab } from "./MobileShell";
+import { useQuote } from "./Passage";
 import Reader from "./Reader";
 import ReadingSettings from "./ReadingSettings";
 import TranslationPicker from "./TranslationPicker";
@@ -33,7 +33,7 @@ export default function Explorer() {
   const [canon, setCanon] = useState<Canon | null>(null);
   const [arcs, setArcs] = useState<Int16Array | null>(null);
   const [mode, setMode] = useState<Mode>("types");
-  const [translation, setTranslation] = useState<TranslationId>("BSB");
+  const [translation, setTranslation] = useState<TranslationId>("KJV");
   const [voteStep, setVoteStep] = useState(3);
   const [themeFilter, setThemeFilter] = useState<ThemeId | null>(null);
   const [panel, setPanel] = useState<Panel>({ kind: "index" });
@@ -130,11 +130,10 @@ export default function Explorer() {
           if (i >= 0) exploreBook(i);
           continue;
         }
-        const [bk, c, v] = part.split(".");
-        const bi = canon.books.findIndex((b) => b.osis === bk);
-        if (bi >= 0 && +c >= 1 && +c <= canon.books[bi].chapters.length) {
+        const idx = parseRefId(canon, part);
+        if (idx !== null) {
           setMode("all");
-          openVerse(toIndex(canon, clampRef(canon, bi, +c, +v)));
+          openVerse(idx);
         }
       }
     };
@@ -278,7 +277,7 @@ export default function Explorer() {
             <h1 className="font-display text-[clamp(1.7rem,3.4vw,3.25rem)] font-medium italic leading-[0.95] tracking-[-0.01em]">
               Types <span className="not-italic text-gold">&amp;</span> Shadows
             </h1>
-            <p className="smallcaps mt-2 hidden text-[12px] text-muted sm:block">
+            <p className="smallcaps mt-2 hidden text-meta text-muted sm:block">
               The Bible is the original hypertext
             </p>
             <div className="mt-3 md:mt-5">
@@ -299,18 +298,18 @@ export default function Explorer() {
           </div>
         </header>
 
-        {book === null && !panel && (
+        {canon && book === null && !panel && (
           <p className="pointer-events-none absolute right-[3vw] top-24 hidden max-w-[19rem] text-right font-display text-[15px] italic leading-snug text-muted lg:block">
-            “I have set My rainbow in the clouds, and it will be a sign of the covenant between Me and the earth.”
-            <span className="smallcaps mt-1 block not-italic font-serif text-[11px] text-muted">Genesis 9:13</span>
+            “<RainbowVerse canon={canon} translation={translation} />”
+            <span className="smallcaps mt-1 block not-italic font-serif text-meta text-muted">Genesis 9:13</span>
           </p>
         )}
-        <p className="pointer-events-auto absolute bottom-4 right-[3vw] hidden text-[11px] italic text-muted md:block">
+        <p className="pointer-events-auto absolute bottom-4 right-[3vw] hidden text-meta italic text-muted md:block">
           <Credit withSource />
         </p>
-        <p className="pointer-events-auto absolute bottom-4 left-[3vw] hidden text-[11px] italic text-muted md:block">
+        <p className="pointer-events-auto absolute bottom-4 left-[3vw] hidden text-meta italic text-muted md:block">
           Cross-references{" "}
-          <a className="quiet-link" href="https://www.openbible.info/labs/cross-references/">
+          <a className="quiet-link" href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">
             OpenBible.info
           </a>{" "}
           (CC BY) · Scripture texts in the public domain
@@ -365,4 +364,9 @@ export default function Explorer() {
       )}
     </main>
   );
+}
+
+/** Genesis 9:13, the sign of the rainbow, in the chosen translation. */
+function RainbowVerse({ canon, translation }: { canon: Canon; translation: TranslationId }) {
+  return <>{useQuote(canon, translation, "Gen 9:13") ?? "\u00a0"}</>;
 }

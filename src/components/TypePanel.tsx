@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import type { Canon, TranslationId } from "@/lib/bible";
 import { type Entry, type ThemeId, THEMES, TIERS } from "@/lib/typology";
-import { useMemo } from "react";
-import { type Canon, type TranslationId, parsePassage } from "@/lib/bible";
 import { Credit } from "./Controls";
-import Passage, { useVerses } from "./Passage";
+import Passage, { useQuote } from "./Passage";
+import ShareSheet from "./ShareSheet";
 
 export function TypeEntry({
   canon,
@@ -25,6 +26,7 @@ export function TypeEntry({
   const theme = THEMES[e.theme];
   const anchor: [number, number] = [e.anchor.from, e.anchor.to];
 
+  const [sharing, setSharing] = useState(false);
   return (
     <article className="flex h-full min-h-0 flex-col" style={{ "--c": theme.color } as React.CSSProperties}>
       <header className="border-b border-parchment/10 px-7 pb-5 pt-6">
@@ -33,6 +35,9 @@ export function TypeEntry({
             ‹ All types
           </button>
           <div className="flex gap-1">
+            <button type="button" className="icon-btn" aria-label="Share this type" title="Share" onClick={() => setSharing(true)}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" /></svg>
+            </button>
             <button
               type="button"
               className="icon-btn"
@@ -46,7 +51,7 @@ export function TypeEntry({
             </button>
           </div>
         </div>
-        <div className="smallcaps flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+        <div className="smallcaps flex flex-wrap items-center gap-x-3 gap-y-1 text-meta">
           <span className="text-[var(--ct)]">{theme.label}</span>
           <span className="text-muted">·</span>
           <span className="text-soft" title={TIERS[e.tier].description}>
@@ -85,10 +90,13 @@ export function TypeEntry({
             </Block>
           ))}
         </Side>
-        <p className="mt-8 border-t border-parchment/10 pt-4 text-[12px] italic leading-snug text-muted">
+        <p className="mt-8 border-t border-parchment/10 pt-4 text-meta italic leading-snug text-muted">
           Highlighted: the New Testament words that make this connection. Draft entry, awaiting theological review.
         </p>
       </div>
+      {sharing && (
+        <ShareSheet target={{ type: e.id }} name={e.title} translation={translation} onClose={() => setSharing(false)} />
+      )}
     </article>
   );
 }
@@ -98,7 +106,7 @@ function Side({ label, sub, children }: { label: string; sub: string; children: 
     <section>
       <div className="mb-3 flex items-baseline gap-3">
         <h3 className="font-display text-2xl italic text-parchment">{label}</h3>
-        <span className="smallcaps text-[11px] text-muted">{sub}</span>
+        <span className="smallcaps text-meta text-muted">{sub}</span>
       </div>
       <div className="space-y-5">{children}</div>
     </section>
@@ -122,7 +130,7 @@ function Block({
         <span className={`smallcaps text-[13px] ${anchor ? "text-[var(--ct)]" : "text-soft"} group-hover:text-parchment`}>
           {label}
         </span>
-        <span className="text-[11px] italic text-parchment/0 transition-colors group-hover:text-soft">read in context</span>
+        <span className="text-meta italic text-parchment/0 transition-colors group-hover:text-soft">read in context</span>
       </button>
       {children}
     </div>
@@ -148,12 +156,11 @@ export function TypeIndex({
   onOpenEntry: (i: number) => void;
 }) {
   const themes = Object.keys(THEMES) as ThemeId[];
-  const col = useMemo(() => parsePassage(canon, "Col 2:17"), [canon]);
-  const motto = useVerses(canon, translation, col.from, col.to);
+  const motto = useQuote(canon, translation, "Col 2:17");
   return (
     <div className="h-full overflow-y-auto px-7 pb-10 pt-6">
       <p className="font-display text-[1.65rem] leading-snug text-parchment">
-        “{motto ? motto[0].text.replace(/^[“"]|[”"]$/g, "") : "\u00a0"}”
+        “{motto ?? "\u00a0"}”
       </p>
       <p className="smallcaps mt-1 text-xs text-muted">Colossians 2:17 · {translation}</p>
 
@@ -164,7 +171,7 @@ export function TypeIndex({
       <dl className="mt-5 space-y-3">
         {Object.values(TIERS).map((t) => (
           <div key={t.label} className="grid grid-cols-[5.5rem_1fr] gap-3">
-            <dt className="smallcaps pt-[2px] text-[12px] text-gold">{t.label}</dt>
+            <dt className="smallcaps pt-[2px] text-meta text-gold">{t.label}</dt>
             <dd className="text-[calc(14px*var(--read-scale))] leading-snug text-soft">{t.description}</dd>
           </div>
         ))}
@@ -180,14 +187,14 @@ export function TypeIndex({
               <button
                 type="button"
                 onClick={() => onTheme(active ? null : th)}
-                className={`smallcaps mb-2 flex w-full items-center gap-2 text-left text-[12px] ${
+                className={`smallcaps mb-2 flex w-full items-center gap-2 text-left text-meta ${
                   themeFilter && !active ? "text-muted" : "text-parchment/80"
                 } hover:text-parchment`}
               >
                 <i className="h-2 w-2 rounded-full bg-[var(--cc)]" />
                 {THEMES[th].label}
                 <span className="text-muted">{list.length}</span>
-                {active && <span className="ml-auto text-[10px] text-muted">showing only · clear</span>}
+                {active && <span className="ml-auto text-meta text-muted">showing only · clear</span>}
               </button>
               <ul>
                 {list.map(([e, i]) => (
@@ -198,7 +205,7 @@ export function TypeIndex({
                       className="group flex w-full items-baseline justify-between gap-4 border-b border-parchment/[0.06] py-[7px] text-left"
                     >
                       <span className="text-[calc(16px*var(--read-scale))] text-parchment/85 group-hover:text-[var(--ct)]">{e.title}</span>
-                      <span className="smallcaps shrink-0 text-[10px] text-muted">
+                      <span className="smallcaps shrink-0 text-meta text-muted">
                         {e.shadow[0].label}
                       </span>
                     </button>
@@ -211,7 +218,7 @@ export function TypeIndex({
       </div>
 
       <details className="mt-10 text-[calc(14px*var(--read-scale))] leading-relaxed text-muted">
-        <summary className="smallcaps cursor-pointer text-[12px] text-soft hover:text-parchment">
+        <summary className="smallcaps cursor-pointer text-meta text-soft hover:text-parchment">
           Why isn&apos;t Joseph here?
         </summary>
         <p className="mt-2">
@@ -222,7 +229,7 @@ export function TypeIndex({
       </details>
 
       {showCredit && (
-        <p className="mt-10 border-t border-parchment/10 pt-4 text-[12px] italic text-muted">
+        <p className="mt-10 border-t border-parchment/10 pt-4 text-meta italic text-muted">
           <Credit withSource />
         </p>
       )}

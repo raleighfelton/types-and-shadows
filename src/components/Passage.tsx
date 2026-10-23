@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type Canon, type TranslationId, fromIndex, loadBookText } from "@/lib/bible";
+import { type Canon, type TranslationId, fromIndex, loadBookText, parsePassage } from "@/lib/bible";
 
 /** Loads verse text for a global range [from, to] in one translation. */
 export function useVerses(canon: Canon, translation: TranslationId, from: number, to: number) {
@@ -26,6 +26,13 @@ export function useVerses(canon: Canon, translation: TranslationId, from: number
     };
   }, [canon, translation, from, to]);
   return verses;
+}
+
+/** One verse's text as a quotation (outer quote marks stripped), in the chosen translation. */
+export function useQuote(canon: Canon, translation: TranslationId, ref: string) {
+  const { from, to } = parsePassage(canon, ref);
+  const verses = useVerses(canon, translation, from, to);
+  return verses?.map((v) => v.text).join(" ").replace(/^[“"‘]+|[”"’]+$/g, "") ?? null;
 }
 
 export function VerseText({ text }: { text: string }) {

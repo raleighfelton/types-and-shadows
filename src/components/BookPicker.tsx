@@ -16,7 +16,7 @@ export default function BookPicker({
 
   const group = (label: string, from: number, to: number) => (
     <div>
-      <div className="smallcaps mb-2 px-1 text-[11px] text-muted">{label}</div>
+      <div className="smallcaps mb-2 px-1 text-meta text-muted">{label}</div>
       <div className="grid grid-cols-5 gap-x-1 gap-y-[2px]">
         {canon.books.slice(from, to).map((b, k) => {
           const i = from + k;

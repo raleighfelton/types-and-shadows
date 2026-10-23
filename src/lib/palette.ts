@@ -29,8 +29,14 @@ function spanRGB(s: number) {
   return c0.map((v, k) => v + (c1[k] - v) * t);
 }
 
+/** Rainbow color for a connection reaching s = sqrt(distance / total), as rgba(). */
+export function spanColor(s: number, light: boolean, alpha = 1) {
+  const c = spanRGB(s).map((v) => Math.round((light ? Math.pow(v, LIGHT_GAMMA) : v) * 255));
+  return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
+}
+
 /** Deepen a #rrggbb color for paper: lower lightness, keep (and lift) saturation. */
-function deepen(hex: string, amount: number) {
+export function deepen(hex: string, amount: number) {
   const n = parseInt(hex.slice(1), 16);
   let [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((v) => v / 255);
   const max = Math.max(r, g, b);
@@ -88,10 +94,7 @@ export function colorsFor(theme: Theme) {
     /** Theme colors are tuned for dark; deepen them for paper. */
     ink: (hex: string) => (light ? deepen(hex, 0.35) : hex),
     /** s = sqrt(distance / total), 0..1 */
-    span: (s: number, alpha = 1) => {
-      const c = spanRGB(s).map((v) => Math.round((light ? Math.pow(v, LIGHT_GAMMA) : v) * 255));
-      return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
-    },
+    span: (s: number, alpha = 1) => spanColor(s, light, alpha),
   };
 }
 
