@@ -27,8 +27,8 @@ export function dot(ctx: CanvasRenderingContext2D, x: number, y: number, color: 
 }
 
 /** Text with a background-colored halo so it reads over busy lines. */
-export function haloText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, fill: string, C: Colors) {
-  ctx.lineWidth = 4;
+export function haloText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, fill: string, C: Colors, halo = 4) {
+  ctx.lineWidth = halo;
   ctx.strokeStyle = C.outline;
   ctx.strokeText(text, x, y);
   ctx.fillStyle = fill;

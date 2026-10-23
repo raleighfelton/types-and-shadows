@@ -57,6 +57,10 @@ const TESTAMENT_TEXT_PX = 15;
 const labelRowsHeight = (wide: boolean) =>
   BOOK_ROW_DY + SECTION_ROW_DY + (wide ? TESTAMENT_ROW_DY + TESTAMENT_TEXT_PX : SECTION_TEXT_PX) + 10;
 const BOOK_FONT = "500 11px";
+/** Books too narrow to name get a short tick in the name row instead. */
+const TICK_H = 5;
+const TICK_DY = 2; // below the top of the name row
+const HOVER_FONT = "600 11px";
 /** Space kept between neighboring book names. */
 const LABEL_PAD = 3;
 /** A book name may be up to this times its book's width (lets REV show). */
@@ -118,13 +122,28 @@ export default function ArcCanvas(props: Props) {
     const ctx = document.createElement("canvas").getContext("2d")!;
     ctx.font = `${BOOK_FONT} ${C.serif}`;
     let lastRight = -Infinity;
-    const books = canon.books.map((b, i) => {
+    const named: { x: number; w: number }[] = [];
+    const fits = canon.books.map((b, i) => {
       const [x1, x2] = bookSpan(i);
       const x = (x1 + x2) / 2;
-      const w = ctx.measureText(b.short.toUpperCase()).width;
+      const name = b.short.toUpperCase();
+      const w = ctx.measureText(name).width;
       const shown = w <= (x2 - x1) * LABEL_SPILL && x - w / 2 - LABEL_PAD >= lastRight;
-      if (shown) lastRight = x + w / 2 + LABEL_PAD;
-      return { x, shown };
+      if (shown) {
+        lastRight = x + w / 2 + LABEL_PAD;
+        named.push({ x, w });
+      }
+      return { x, name, shown };
+    });
+    // Each book is named, ticked (too narrow, and clear of any name), or left
+    // blank. Its hover name sits at hoverX, kept inside the chart.
+    ctx.font = `${HOVER_FONT} ${C.serif}`;
+    const books = fits.map(({ x, name, shown }) => {
+      const half = ctx.measureText(name).width / 2;
+      const clear = named.every((n) => Math.abs(x - n.x) > n.w / 2 + LABEL_PAD);
+      const mark: "name" | "tick" | null = shown ? "name" : clear ? "tick" : null;
+      const hoverX = Math.min(Math.max(x, layout.padL + half), layout.padL + layout.span - half);
+      return { x, name, mark, hoverX };
     });
     ctx.font = `italic ${SECTION_TEXT_PX}px ${C.display}`;
     const index = (osis: string) => canon.books.findIndex((b) => b.osis === osis);
@@ -217,9 +236,10 @@ export default function ArcCanvas(props: Props) {
     ctx.fillStyle = C.text;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    canon.books.forEach((b, i) => {
-      if (labels.books[i]?.shown) ctx.fillText(b.short.toUpperCase(), labels.books[i].x, labels.y);
-    });
+    for (const L of labels.books) {
+      if (L.mark === "name") ctx.fillText(L.name, L.x, labels.y);
+      else if (L.mark === "tick") ctx.fillRect(Math.round(L.x), labels.y + TICK_DY, 1, TICK_H);
+    }
     // section brackets
     ctx.font = `italic ${SECTION_TEXT_PX}px ${C.display}`;
     ctx.strokeStyle = C.text;
@@ -359,11 +379,15 @@ export default function ArcCanvas(props: Props) {
       ctx.globalAlpha = 0.9;
       ctx.fillStyle = C.link;
       ctx.fillRect(x1, baseY - 1, Math.max(2, x2 - x1), 2);
-      if (labels.books[hover.book]?.shown) {
-        ctx.font = `600 11px ${C.serif}`;
+      const L = labels.books[hover.book];
+      if (L) {
+        // Named or not, the hovered book's name shows in its place.
+        ctx.globalAlpha = 1;
+        ctx.font = `${HOVER_FONT} ${C.serif}`;
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
-        haloText(ctx, canon.books[hover.book].short.toUpperCase(), labels.books[hover.book].x, labels.y, C.link, C);
+        // A wide halo clears the neighboring ticks under the name.
+        haloText(ctx, L.name, L.hoverX, labels.y, C.link, C, 8);
       }
     }
 
