@@ -1,0 +1,280 @@
+@import "tailwindcss";
+
+/* Vellum & Lapis. Ultramarine was the precious blue of illuminated manuscripts. */
+@theme {
+  /* Dark: night-blue ground, vellum text, lapis accents. */
+  --color-ink: #0e1220;
+  --color-ink-2: #141a2b;
+  --color-parchment: #e8e6df;
+  --color-gold: #8ea8e8;
+  --color-link: #a8c0ff;
+  --color-error: #d4553f;
+  /* Secondary text levels, mixed toward the panel color. Both pass WCAG AA
+     (4.5:1) on every palette; the light theme needs more ink to get there. */
+  --color-muted: color-mix(in srgb, var(--color-parchment) var(--muted-mix), var(--color-ink-2));
+  --color-soft: color-mix(in srgb, var(--color-parchment) var(--soft-mix), var(--color-ink-2));
+  --font-display: var(--font-cormorant), Georgia, serif;
+  --font-serif: var(--font-garamond), Georgia, serif;
+}
+
+:root {
+  color-scheme: dark;
+  --read-scale: 1;
+  --muted-mix: 60%;
+  --soft-mix: 74%;
+}
+
+/* Other palettes (Aa menu → Color). Dark values here, light values below. */
+/* Parchment: warm umber ground, gold accents. */
+[data-palette="parchment"] {
+  --color-ink: #14110e;
+  --color-ink-2: #1b1713;
+  --color-parchment: #ece3cf;
+  --color-gold: #d9a441;
+  --color-link: #ffcf6e;
+}
+/* Linen & Rubric: charcoal ground, the scribe's red. */
+[data-palette="rubric"] {
+  --color-ink: #121214;
+  --color-ink-2: #1a1a1d;
+  --color-parchment: #ecebe7;
+  --color-gold: #e0687c;
+  --color-link: #8fb3ff;
+}
+/* Plain: black and white; the rainbow carries all the color. */
+[data-palette="plain"] {
+  --color-ink: #0a0a0b;
+  --color-ink-2: #141416;
+  --color-parchment: #f2f2f0;
+  --color-gold: #f2f2f0;
+  --color-link: #ff7a5c;
+}
+
+/* Light: cool vellum, blue-black ink, lapis accents. */
+[data-theme="light"] {
+  color-scheme: light;
+  --muted-mix: 72%;
+  --soft-mix: 84%;
+  --color-ink: #f6f5f1;
+  --color-ink-2: #ecebe6;
+  --color-parchment: #17202f;
+  --color-gold: #2b4c9b;
+  --color-link: #2f45e8;
+}
+
+[data-theme="light"][data-palette="parchment"] {
+  --color-ink: #f4eee0;
+  --color-ink-2: #ece4d1;
+  --color-parchment: #2e241a;
+  --color-gold: #7f4c08;
+  --color-link: #8f4604;
+}
+[data-theme="light"][data-palette="rubric"] {
+  --color-ink: #f5f4f0;
+  --color-ink-2: #ebe9e3;
+  --color-parchment: #1d1c1a;
+  --color-gold: #a11d2b;
+  --color-link: #1f56b0;
+}
+[data-theme="light"][data-palette="plain"] {
+  --color-ink: #fbfbf9;
+  --color-ink-2: #f1f1ee;
+  --color-parchment: #131416;
+  --color-gold: #131416;
+  --color-link: #b82c12;
+}
+
+/* Reading typefaces (chosen in the Aa menu). */
+[data-font="book"] {
+  --font-serif: var(--font-literata), Georgia, serif;
+}
+[data-font="clear"] {
+  --font-serif: var(--font-atkinson), system-ui, sans-serif;
+}
+
+/* Theme colors (--c) are tuned for dark; --cc deepens them on paper.
+   --ct is the text version: blended toward the ink until it passes AA. */
+* {
+  --cc: var(--c);
+  --ct: color-mix(in srgb, var(--c) 74%, var(--color-parchment));
+}
+[data-theme="light"] * {
+  --cc: color-mix(in oklch, var(--c) 70%, black);
+  --ct: color-mix(in srgb, var(--cc) 50%, var(--color-parchment));
+}
+
+html,
+body {
+  background: var(--color-ink);
+  color: var(--color-parchment);
+  font-family: var(--font-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-gold) 40%, transparent);
+}
+
+.smallcaps {
+  font-family: var(--font-serif);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  font-feature-settings: "c2sc", "smcp";
+}
+
+.control {
+  border: 1px solid color-mix(in oklab, var(--color-parchment) 16%, transparent);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+  background: color-mix(in oklab, var(--color-ink) 70%, transparent);
+  backdrop-filter: blur(6px);
+  transition: border-color 160ms ease-out, width 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.control:hover,
+.control:focus {
+  border-color: color-mix(in oklab, var(--color-parchment) 35%, transparent);
+}
+
+.popover {
+  background: var(--color-ink-2);
+  border: 1px solid color-mix(in oklab, var(--color-parchment) 12%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / 0.35);
+  animation: rise 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 20px;
+  line-height: 1;
+  color: color-mix(in oklab, var(--color-parchment) 55%, transparent);
+  transition: color 140ms, background 140ms;
+}
+.icon-btn:hover {
+  color: var(--color-parchment);
+  background: color-mix(in oklab, var(--color-parchment) 8%, transparent);
+}
+
+.panel {
+  animation: slide 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+}
+@media (max-width: 767px) {
+  .panel {
+    border-radius: 14px 14px 0 0;
+    animation-name: lift;
+  }
+}
+@keyframes lift {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+}
+
+.scripture {
+  font-size: calc(17px * var(--read-scale));
+  line-height: 1.7;
+  color: color-mix(in oklab, var(--color-parchment) 86%, transparent);
+  hanging-punctuation: first;
+}
+.scripture.reading {
+  font-size: calc(18.5px * var(--read-scale));
+  line-height: 1.75;
+}
+.scripture sup {
+  font-size: 0.62em;
+  font-variant-numeric: oldstyle-nums;
+  color: color-mix(in oklab, var(--color-gold) 75%, transparent);
+  margin-right: 0.2em;
+  position: relative;
+  top: -0.15em;
+}
+.scripture .hot {
+  color: var(--color-parchment);
+  background: linear-gradient(transparent 62%, color-mix(in oklab, var(--c, var(--color-gold)) 28%, transparent) 62%);
+}
+.verse {
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background 140ms, color 140ms;
+}
+.verse:hover {
+  background: color-mix(in oklab, var(--color-parchment) 6%, transparent);
+}
+.verse.is-focus {
+  color: var(--color-parchment);
+  background: color-mix(in oklab, var(--color-gold) 16%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-gold) 16%, transparent);
+}
+.verse:focus-visible {
+  outline: 1px solid var(--color-gold);
+}
+.type-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.xref {
+  --link: var(--color-link);
+  margin-left: -14px;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid transparent;
+  transition: border-color 140ms, background 140ms;
+}
+.xref .xref-ref {
+  color: var(--color-parchment);
+  transition: color 140ms;
+}
+.xref:hover .xref-ref {
+  color: var(--link);
+}
+.xref.is-selected {
+  border-left-color: var(--link);
+  background: linear-gradient(90deg, color-mix(in oklab, var(--link) 10%, transparent), transparent 70%);
+}
+.xref.is-selected .xref-ref {
+  color: var(--link);
+}
+
+.type-link {
+  padding: 10px 14px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--cc) 12%, transparent);
+  border: 1px solid color-mix(in oklab, var(--cc) 30%, transparent);
+  transition: background 160ms;
+}
+.type-link:hover {
+  background: color-mix(in oklab, var(--cc) 20%, transparent);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes slide {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

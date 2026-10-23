@@ -1,0 +1,621 @@
+{
+  "themes": {
+    "creation": { "label": "Creation & Rest", "color": "#c9b27c" },
+    "sacrifice": { "label": "Lamb & Sacrifice", "color": "#d4553f" },
+    "sanctuary": { "label": "Priest & Sanctuary", "color": "#d9a441" },
+    "deliverance": { "label": "Deliverance & Wilderness", "color": "#5f9e8f" },
+    "promise": { "label": "Promise & Covenant", "color": "#8e7cc3" },
+    "king": { "label": "King & Kingdom", "color": "#4f7fc0" },
+    "prophet": { "label": "Prophet & Forerunner", "color": "#9bb35a" },
+    "advent": { "label": "Birth & Ministry", "color": "#e08e6d" },
+    "cross": { "label": "Suffering & Rejection", "color": "#b8456b" },
+    "life": { "label": "Resurrection & Exaltation", "color": "#e9d8a6" }
+  },
+  "tiers": {
+    "named": {
+      "label": "Named",
+      "description": "The New Testament itself uses figurative language: type, shadow, copy, antitype, allegory, figure."
+    },
+    "stated": {
+      "label": "Stated",
+      "description": "The New Testament draws the connection directly, by name or by quotation."
+    },
+    "fulfilled": {
+      "label": "Fulfilled",
+      "description": "The New Testament quotes the passage and says it was fulfilled, or applies it to Christ."
+    }
+  },
+  "entries": [
+    {
+      "id": "adam",
+      "title": "Adam and the last Adam",
+      "tier": "named",
+      "theme": "creation",
+      "word": "typos · type",
+      "shadow": ["Gen 2:7"],
+      "substance": ["Rom 5:14", "1Cor 15:45"],
+      "anchor": "Rom 5:14",
+      "note": "Paul calls Adam a type of the One who was to come, and names Christ the last Adam, quoting Genesis 2:7."
+    },
+    {
+      "id": "flood",
+      "title": "The flood and baptism",
+      "tier": "named",
+      "theme": "deliverance",
+      "word": "antitypon · corresponding",
+      "shadow": ["Gen 7:13", "Gen 7:23"],
+      "substance": ["1Pet 3:20-21"],
+      "anchor": "1Pet 3:21",
+      "note": "Peter says the eight brought safely through water in the ark correspond to baptism, which now saves through the resurrection of Jesus Christ."
+    },
+    {
+      "id": "tabernacle",
+      "title": "The tabernacle pattern",
+      "tier": "named",
+      "theme": "sanctuary",
+      "word": "hypodeigma, skia · copy, shadow",
+      "shadow": ["Exod 25:40"],
+      "substance": ["Heb 8:5", "Heb 9:24"],
+      "anchor": "Heb 8:5",
+      "note": "Hebrews quotes God's command to Moses and calls the earthly sanctuary a copy and shadow of what is in heaven. Christ entered heaven itself."
+    },
+    {
+      "id": "yearly-sacrifice",
+      "title": "Sacrifices year by year",
+      "tier": "named",
+      "theme": "sacrifice",
+      "word": "skia · shadow",
+      "shadow": ["Lev 16:34"],
+      "substance": ["Heb 10:1", "Heb 10:10"],
+      "anchor": "Heb 10:1",
+      "note": "Hebrews calls the Law a shadow of the good things to come: its sacrifices were repeated year after year, while Christ's body was offered once for all."
+    },
+    {
+      "id": "feasts",
+      "title": "Festivals, new moons and Sabbaths",
+      "tier": "named",
+      "theme": "sanctuary",
+      "word": "skia · shadow",
+      "shadow": ["Lev 23:2-3", "Num 28:11"],
+      "substance": ["Col 2:16-17"],
+      "anchor": "Col 2:17",
+      "note": "Paul calls festivals, new moons and Sabbaths a shadow of things to come; the substance belongs to Christ."
+    },
+    {
+      "id": "red-sea",
+      "title": "Through the sea",
+      "tier": "named",
+      "theme": "deliverance",
+      "word": "typos · example",
+      "shadow": ["Exod 14:22"],
+      "substance": ["1Cor 10:1-2", "1Cor 10:6"],
+      "anchor": "1Cor 10:6",
+      "note": "Paul says Israel was baptized into Moses in the cloud and in the sea, and that these things happened as examples for us."
+    },
+    {
+      "id": "rock",
+      "title": "The rock in the wilderness",
+      "tier": "named",
+      "theme": "deliverance",
+      "word": "typos · example",
+      "shadow": ["Exod 17:6", "Num 20:11"],
+      "substance": ["1Cor 10:4", "1Cor 10:6"],
+      "anchor": "1Cor 10:4",
+      "note": "Paul says Israel drank from a spiritual rock that followed them, and the rock was Christ."
+    },
+    {
+      "id": "wilderness",
+      "title": "Fallen in the wilderness",
+      "tier": "named",
+      "theme": "deliverance",
+      "word": "typos · example",
+      "shadow": ["Num 14:29"],
+      "substance": ["1Cor 10:5-6", "1Cor 10:11"],
+      "anchor": "1Cor 10:11",
+      "note": "Paul says these things happened to Israel as examples and were written down as instruction for us."
+    },
+    {
+      "id": "isaac",
+      "title": "Isaac received back",
+      "tier": "named",
+      "theme": "life",
+      "word": "parabolē · figure",
+      "shadow": ["Gen 22:2", "Gen 22:12"],
+      "substance": ["Heb 11:17-19"],
+      "anchor": "Heb 11:19",
+      "note": "Hebrews says Abraham reasoned that God could raise the dead, and in a figure he received Isaac back."
+    },
+    {
+      "id": "hagar-sarah",
+      "title": "Hagar and Sarah",
+      "tier": "named",
+      "theme": "promise",
+      "word": "allēgoreō · allegory",
+      "shadow": ["Gen 16:15", "Gen 21:2"],
+      "substance": ["Gal 4:22-26"],
+      "anchor": "Gal 4:24",
+      "note": "Paul says the two women stand for two covenants: one from Mount Sinai bearing children into slavery, and the Jerusalem above, who is free."
+    },
+    {
+      "id": "serpent",
+      "title": "The bronze serpent",
+      "tier": "stated",
+      "theme": "deliverance",
+      "shadow": ["Num 21:8-9"],
+      "substance": ["John 3:14-15"],
+      "anchor": "John 3:14",
+      "note": "Jesus says that as Moses lifted up the serpent in the wilderness, so the Son of Man must be lifted up."
+    },
+    {
+      "id": "jonah",
+      "title": "The sign of Jonah",
+      "tier": "stated",
+      "theme": "life",
+      "shadow": ["Jonah 1:17"],
+      "substance": ["Matt 12:39-40"],
+      "anchor": "Matt 12:40",
+      "note": "Jesus says that as Jonah was three days and three nights in the belly of the fish, so the Son of Man will be three days and three nights in the heart of the earth."
+    },
+    {
+      "id": "passover",
+      "title": "The Passover lamb",
+      "tier": "stated",
+      "theme": "sacrifice",
+      "shadow": ["Exod 12:5-7"],
+      "substance": ["1Cor 5:7"],
+      "anchor": "1Cor 5:7",
+      "note": "Paul calls Christ our Passover, who has been sacrificed."
+    },
+    {
+      "id": "manna",
+      "title": "Bread from heaven",
+      "tier": "stated",
+      "theme": "deliverance",
+      "shadow": ["Exod 16:4", "Exod 16:15"],
+      "substance": ["John 6:31-35"],
+      "anchor": "John 6:32",
+      "note": "Jesus says Moses did not give the true bread from heaven, and calls Himself the bread of life."
+    },
+    {
+      "id": "veil",
+      "title": "The veil",
+      "tier": "stated",
+      "theme": "sanctuary",
+      "shadow": ["Exod 26:31-33"],
+      "substance": ["Heb 10:19-20"],
+      "anchor": "Heb 10:20",
+      "note": "Hebrews says we enter the holy place by a new and living way through the veil, that is, His flesh."
+    },
+    {
+      "id": "high-priest",
+      "title": "The high priest enters",
+      "tier": "stated",
+      "theme": "sanctuary",
+      "shadow": ["Lev 16:15"],
+      "substance": ["Heb 9:7", "Heb 9:11-12"],
+      "anchor": "Heb 9:12",
+      "note": "Hebrews contrasts the high priest entering once a year with blood not his own, and Christ entering once for all with His own blood."
+    },
+    {
+      "id": "melchizedek",
+      "title": "Melchizedek",
+      "tier": "stated",
+      "theme": "sanctuary",
+      "shadow": ["Gen 14:18-20", "Ps 110:4"],
+      "substance": ["Heb 7:1-3", "Heb 7:15-17"],
+      "anchor": "Heb 7:17",
+      "note": "Hebrews says Melchizedek was made like the Son of God, and that Christ is a priest forever after his order."
+    },
+    {
+      "id": "abel",
+      "title": "The blood of Abel",
+      "tier": "stated",
+      "theme": "sacrifice",
+      "shadow": ["Gen 4:10"],
+      "substance": ["Heb 12:24"],
+      "anchor": "Heb 12:24",
+      "note": "Hebrews says the sprinkled blood of Jesus speaks better than the blood of Abel."
+    },
+    {
+      "id": "offering-body",
+      "title": "A body prepared",
+      "tier": "stated",
+      "theme": "sacrifice",
+      "shadow": ["Ps 40:6-8"],
+      "substance": ["Heb 10:5-10"],
+      "anchor": "Heb 10:5",
+      "note": "Hebrews puts the psalm in Christ's mouth as He comes into the world: sacrifices and offerings give way to His body, offered once for all."
+    },
+    {
+      "id": "days-of-noah",
+      "title": "The days of Noah",
+      "tier": "stated",
+      "theme": "deliverance",
+      "shadow": ["Gen 7:7"],
+      "substance": ["Matt 24:37-39"],
+      "anchor": "Matt 24:37",
+      "note": "Jesus says the coming of the Son of Man will be just like the days of Noah."
+    },
+    {
+      "id": "solomon",
+      "title": "Greater than Solomon",
+      "tier": "stated",
+      "theme": "king",
+      "shadow": ["1Kgs 10:1"],
+      "substance": ["Matt 12:42"],
+      "anchor": "Matt 12:42",
+      "note": "Jesus says the queen of the South came to hear Solomon's wisdom, and something greater than Solomon is here."
+    },
+    {
+      "id": "sinai-zion",
+      "title": "Sinai and Zion",
+      "tier": "stated",
+      "theme": "promise",
+      "shadow": ["Exod 19:16-18"],
+      "substance": ["Heb 12:18-24"],
+      "anchor": "Heb 12:22",
+      "note": "Hebrews contrasts the fire and trembling of Sinai with Mount Zion, the heavenly Jerusalem, and Jesus the mediator of a new covenant."
+    },
+    {
+      "id": "rest",
+      "title": "God's rest",
+      "tier": "stated",
+      "theme": "creation",
+      "shadow": ["Gen 2:2"],
+      "substance": ["Heb 4:4", "Heb 4:9-10"],
+      "anchor": "Heb 4:9",
+      "note": "Hebrews quotes God resting on the seventh day and says a Sabbath rest remains for the people of God."
+    },
+    {
+      "id": "circumcision",
+      "title": "Circumcision made without hands",
+      "tier": "stated",
+      "theme": "promise",
+      "shadow": ["Gen 17:10-11"],
+      "substance": ["Col 2:11"],
+      "anchor": "Col 2:11",
+      "note": "Paul says believers were circumcised with a circumcision made without hands, the circumcision of Christ."
+    },
+    {
+      "id": "seed",
+      "title": "The promised seed",
+      "tier": "stated",
+      "theme": "promise",
+      "word": "zeraʿ, sperma · seed",
+      "shadow": ["Gen 12:7", "Gen 13:15", "Gen 17:8"],
+      "substance": ["Gal 3:16"],
+      "anchor": "Gal 3:16",
+      "note": "Paul says the promises were spoken to Abraham and to his seed, singular, who is Christ. Some translations render the Genesis word as offspring or descendants."
+    },
+    {
+      "id": "nations-blessed",
+      "title": "All nations blessed",
+      "tier": "stated",
+      "theme": "promise",
+      "shadow": ["Gen 12:3"],
+      "substance": ["Gal 3:8"],
+      "anchor": "Gal 3:8",
+      "note": "Paul says Scripture foresaw that God would justify the Gentiles by faith and preached the gospel beforehand to Abraham."
+    },
+    {
+      "id": "curse-tree",
+      "title": "Cursed on a tree",
+      "tier": "stated",
+      "theme": "cross",
+      "shadow": ["Deut 21:23"],
+      "substance": ["Gal 3:13"],
+      "anchor": "Gal 3:13",
+      "note": "Paul quotes the Law and says Christ redeemed us from its curse by becoming a curse for us."
+    },
+    {
+      "id": "forsaken",
+      "title": "Why have You forsaken Me",
+      "tier": "stated",
+      "theme": "cross",
+      "shadow": ["Ps 22:1"],
+      "substance": ["Matt 27:46"],
+      "anchor": "Matt 27:46",
+      "note": "On the cross Jesus cries out the opening words of Psalm 22."
+    },
+    {
+      "id": "zeal",
+      "title": "Zeal for Your house",
+      "tier": "stated",
+      "theme": "cross",
+      "shadow": ["Ps 69:9"],
+      "substance": ["John 2:17", "Rom 15:3"],
+      "anchor": "John 2:17",
+      "note": "John's disciples remember this psalm when Jesus clears the temple, and Paul applies its second line to Christ."
+    },
+    {
+      "id": "prophet-like-moses",
+      "title": "A prophet like Moses",
+      "tier": "fulfilled",
+      "theme": "prophet",
+      "shadow": ["Deut 18:15"],
+      "substance": ["Acts 3:22-26"],
+      "anchor": "Acts 3:22",
+      "note": "Peter quotes Moses' promise of a prophet like him and applies it to Jesus, God's Servant whom He raised up."
+    },
+    {
+      "id": "voice-wilderness",
+      "title": "A voice in the wilderness",
+      "tier": "fulfilled",
+      "theme": "prophet",
+      "shadow": ["Isa 40:3"],
+      "substance": ["Matt 3:1-3"],
+      "anchor": "Matt 3:3",
+      "note": "Matthew says John the Baptist is the one Isaiah spoke of."
+    },
+    {
+      "id": "messenger",
+      "title": "My messenger before You",
+      "tier": "fulfilled",
+      "theme": "prophet",
+      "shadow": ["Mal 3:1"],
+      "substance": ["Matt 11:10"],
+      "anchor": "Matt 11:10",
+      "note": "Jesus says John is the one of whom Malachi wrote."
+    },
+    {
+      "id": "elijah",
+      "title": "Elijah who is to come",
+      "tier": "fulfilled",
+      "theme": "prophet",
+      "shadow": ["Mal 4:5"],
+      "substance": ["Matt 11:13-14", "Matt 17:12-13"],
+      "anchor": "Matt 11:14",
+      "note": "Jesus says John is the Elijah who was to come."
+    },
+    {
+      "id": "virgin",
+      "title": "Immanuel",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Isa 7:14"],
+      "substance": ["Matt 1:22-23"],
+      "anchor": "Matt 1:22",
+      "note": "Matthew says Jesus' birth fulfilled what the Lord spoke through the prophet."
+    },
+    {
+      "id": "bethlehem",
+      "title": "Out of Bethlehem",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Mic 5:2"],
+      "substance": ["Matt 2:4-6"],
+      "anchor": "Matt 2:5",
+      "note": "The chief priests and scribes answer Herod from Micah: the Christ is to be born in Bethlehem."
+    },
+    {
+      "id": "out-of-egypt",
+      "title": "Out of Egypt",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Hos 11:1"],
+      "substance": ["Matt 2:14-15"],
+      "anchor": "Matt 2:15",
+      "note": "Matthew says Jesus' return from Egypt fulfilled what was spoken: out of Egypt I called My Son."
+    },
+    {
+      "id": "rachel",
+      "title": "Rachel weeping",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Jer 31:15"],
+      "substance": ["Matt 2:16-18"],
+      "anchor": "Matt 2:17",
+      "note": "Matthew says Herod's slaughter of the children fulfilled Jeremiah's word."
+    },
+    {
+      "id": "galilee-light",
+      "title": "A great light in Galilee",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Isa 9:1-2"],
+      "substance": ["Matt 4:13-16"],
+      "anchor": "Matt 4:14",
+      "note": "Matthew says Jesus settling in Capernaum fulfilled Isaiah."
+    },
+    {
+      "id": "anointed",
+      "title": "The Spirit of the Lord is upon Me",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Isa 61:1-2"],
+      "substance": ["Luke 4:17-21"],
+      "anchor": "Luke 4:21",
+      "note": "Jesus reads Isaiah in the synagogue and says, today this Scripture has been fulfilled."
+    },
+    {
+      "id": "bore-sicknesses",
+      "title": "He took our infirmities",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Isa 53:4"],
+      "substance": ["Matt 8:16-17"],
+      "anchor": "Matt 8:17",
+      "note": "Matthew says Jesus' healings fulfilled Isaiah 53:4."
+    },
+    {
+      "id": "parables",
+      "title": "Things hidden from the foundation",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Ps 78:2"],
+      "substance": ["Matt 13:34-35"],
+      "anchor": "Matt 13:35",
+      "note": "Matthew says Jesus speaking in parables fulfilled what was spoken through the prophet."
+    },
+    {
+      "id": "hearing-not-understanding",
+      "title": "Hearing but never understanding",
+      "tier": "fulfilled",
+      "theme": "advent",
+      "shadow": ["Isa 6:9-10"],
+      "substance": ["Matt 13:13-15"],
+      "anchor": "Matt 13:14",
+      "note": "Jesus says Isaiah's prophecy is fulfilled in those who hear but do not understand."
+    },
+    {
+      "id": "triumphal-entry",
+      "title": "Your King comes, riding on a donkey",
+      "tier": "fulfilled",
+      "theme": "king",
+      "shadow": ["Zech 9:9"],
+      "substance": ["Matt 21:4-5"],
+      "anchor": "Matt 21:4",
+      "note": "Matthew says Jesus' entry into Jerusalem fulfilled Zechariah."
+    },
+    {
+      "id": "son-of-david",
+      "title": "David's son and throne",
+      "tier": "fulfilled",
+      "theme": "king",
+      "shadow": ["2Sam 7:12-14"],
+      "substance": ["Heb 1:5", "Luke 1:32-33"],
+      "anchor": "Heb 1:5",
+      "note": "Hebrews applies God's promise to David, I will be a Father to him, to the Son."
+    },
+    {
+      "id": "begotten",
+      "title": "You are My Son",
+      "tier": "fulfilled",
+      "theme": "king",
+      "shadow": ["Ps 2:7"],
+      "substance": ["Acts 13:32-33", "Heb 1:5"],
+      "anchor": "Acts 13:33",
+      "note": "Paul says God fulfilled this promise by raising up Jesus."
+    },
+    {
+      "id": "right-hand",
+      "title": "Sit at My right hand",
+      "tier": "fulfilled",
+      "theme": "king",
+      "shadow": ["Ps 110:1"],
+      "substance": ["Matt 22:41-45", "Acts 2:34-36"],
+      "anchor": "Acts 2:34",
+      "note": "Jesus asks how David can call the Christ Lord, and Peter says David spoke of Jesus, exalted to God's right hand."
+    },
+    {
+      "id": "not-abandoned",
+      "title": "Not abandoned to the grave",
+      "tier": "fulfilled",
+      "theme": "life",
+      "shadow": ["Ps 16:10"],
+      "substance": ["Acts 2:25-31"],
+      "anchor": "Acts 2:31",
+      "note": "Peter says David foresaw and spoke of the resurrection of the Christ."
+    },
+    {
+      "id": "cornerstone",
+      "title": "The rejected cornerstone",
+      "tier": "fulfilled",
+      "theme": "cross",
+      "shadow": ["Ps 118:22", "Isa 28:16"],
+      "substance": ["Matt 21:42", "Acts 4:10-11", "1Pet 2:6-7"],
+      "anchor": "Acts 4:11",
+      "note": "Jesus applies the psalm to Himself, and Peter names Jesus the stone the builders rejected."
+    },
+    {
+      "id": "lamb-to-slaughter",
+      "title": "Led like a lamb to the slaughter",
+      "tier": "fulfilled",
+      "theme": "sacrifice",
+      "shadow": ["Isa 53:7-8"],
+      "substance": ["Acts 8:32-35"],
+      "anchor": "Acts 8:35",
+      "note": "Philip begins from this Scripture and preaches Jesus to the Ethiopian official."
+    },
+    {
+      "id": "numbered",
+      "title": "Numbered with the transgressors",
+      "tier": "fulfilled",
+      "theme": "cross",
+      "shadow": ["Isa 53:12"],
+      "substance": ["Luke 22:37"],
+      "anchor": "Luke 22:37",
+      "note": "Jesus says this Scripture must be fulfilled in Him."
+    },
+    {
+      "id": "unbelief",
+      "title": "Who has believed our report",
+      "tier": "fulfilled",
+      "theme": "cross",
+      "shadow": ["Isa 53:1"],
+      "substance": ["John 12:37-38"],
+      "anchor": "John 12:38",
+      "note": "John says the people's unbelief fulfilled the word of Isaiah."
+    },
+    {
+      "id": "garments",
+      "title": "They divided My garments",
+      "tier": "fulfilled",
+      "theme": "cross",
+      "shadow": ["Ps 22:18"],
+      "substance": ["John 19:23-24"],
+      "anchor": "John 19:24",
+      "note": "John says the soldiers casting lots fulfilled the Scripture."
+    },
+    {
+      "id": "betrayer",
+      "title": "He who ate My bread",
+      "tier": "fulfilled",
+      "theme": "cross",
+      "shadow": ["Ps 41:9"],
+      "substance": ["John 13:18"],
+      "anchor": "John 13:18",
+      "note": "Jesus says His betrayal fulfills this Scripture."
+    },
+    {
+      "id": "shepherd-struck",
+      "title": "Strike the shepherd",
+      "tier": "fulfilled",
+      "theme": "cross",
+      "shadow": ["Zech 13:7"],
+      "substance": ["Matt 26:31"],
+      "anchor": "Matt 26:31",
+      "note": "Jesus quotes Zechariah the night He is betrayed: the sheep will be scattered."
+    },
+    {
+      "id": "pierced",
+      "title": "They will look on Him whom they pierced",
+      "tier": "fulfilled",
+      "theme": "cross",
+      "shadow": ["Zech 12:10"],
+      "substance": ["John 19:34-37"],
+      "anchor": "John 19:37",
+      "note": "John says the soldier's spear fulfilled the Scripture."
+    },
+    {
+      "id": "spirit-poured",
+      "title": "I will pour out My Spirit",
+      "tier": "fulfilled",
+      "theme": "promise",
+      "shadow": ["Joel 2:28-32"],
+      "substance": ["Acts 2:16-21"],
+      "anchor": "Acts 2:16",
+      "note": "Peter says Pentecost is what was spoken through the prophet Joel."
+    },
+    {
+      "id": "new-covenant",
+      "title": "A new covenant",
+      "tier": "fulfilled",
+      "theme": "promise",
+      "shadow": ["Jer 31:31-34"],
+      "substance": ["Heb 8:6-13", "Luke 22:20"],
+      "anchor": "Heb 8:8",
+      "note": "Hebrews quotes Jeremiah in full and calls Jesus the mediator of a better covenant; at the Last Supper He calls the cup the new covenant in His blood."
+    },
+    {
+      "id": "davids-tent",
+      "title": "David's fallen tent rebuilt",
+      "tier": "fulfilled",
+      "theme": "promise",
+      "shadow": ["Amos 9:11-12"],
+      "substance": ["Acts 15:14-17"],
+      "anchor": "Acts 15:15",
+      "note": "James says God taking a people from the Gentiles agrees with the words of the prophets, and quotes Amos."
+    }
+  ]
+}

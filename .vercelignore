@@ -1,0 +1,7 @@
+# Generated or local-only; Vercel rebuilds the data during `npm run build`.
+node_modules
+.next
+.cache
+public/data
+public/data.partial
+REVIEW.md
