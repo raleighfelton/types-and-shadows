@@ -45,6 +45,9 @@ function cardColors(P: PaletteColors, light: boolean, theme: string) {
     arc: ink,
     // Theme color readable as text (mirrors --ct): blended toward the foreground.
     accent: mix(ink, P.fg, light ? 0.5 : 0.26),
+    /** The rule under the arcs, and the lighter hairline above the footer. */
+    rule: mix(P.ink, P.fg, 0.4),
+    hairline: mix(P.ink, P.fg, 0.18),
   };
 }
 
@@ -138,34 +141,58 @@ export function Card({
   const S = SCALE[format];
   const { width, height } = FORMATS[format];
   const K = cardColors(P, light, model.color);
-  const wide = format === "wide";
+  // Wide: passages side by side; square and story stack them.
+  const stacked = format !== "wide";
+  /** Vertical rhythm between passages and above the footer. */
+  const rhythm = S.small * 0.9;
 
+  // Wide: passages side by side. Square/story: stacked and kept together as one
+  // block, centered in the space between the title and the footer.
   const side = (s: Side) => (
-    <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: S.small * 0.8, marginBottom: S.small * 0.6 }}>
+    <div style={{ display: "flex", flexDirection: "column", flex: stacked ? "none" : 1, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "baseline", gap: S.small * 0.8, marginBottom: S.small * 0.45 }}>
         {s.label && <div style={{ fontFamily: "Cormorant", fontStyle: "italic", fontSize: S.label, color: P.fg }}>{s.label}</div>}
         <div style={{ fontFamily: "Garamond", fontWeight: 600, fontSize: S.small, letterSpacing: 2, color: K.accent }}>
           {s.ref.toUpperCase()}
         </div>
       </div>
-      <div style={{ fontFamily: "Garamond", fontSize: S.body, lineHeight: 1.45, color: P.fg }}>{s.text}</div>
+      <div style={{ fontFamily: "Garamond", fontSize: S.body, lineHeight: 1.4, color: P.fg }}>{s.text}</div>
     </div>
   );
 
   return (
     <div style={{ width, height, display: "flex", flexDirection: "column", background: P.ink, padding: S.pad, fontFamily: "Garamond" }}>
       <ArcBand arcs={arcs} width={width - S.pad * 2} height={S.band} light={light} highlight={model.arc} color={K.arc} />
-      <div style={{ height: 2, background: mix(P.ink, P.fg, 0.4), marginBottom: S.pad * 0.55 }} />
+      <div style={{ height: 2, background: K.rule, marginBottom: S.pad * 0.55 }} />
       <div style={{ fontSize: S.small, letterSpacing: 3, color: K.accent, fontWeight: 600 }}>{model.kicker.toUpperCase()}</div>
       <div style={{ fontFamily: "Cormorant", fontSize: S.title, lineHeight: 1.05, color: P.fg, marginTop: S.small * 0.5, marginBottom: S.pad * 0.5 }}>
         {model.title}
       </div>
-      <div style={{ display: "flex", flexDirection: wide ? "row" : "column", gap: wide ? 48 : S.pad * 0.5, flex: 1 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: stacked ? "column" : "row",
+          justifyContent: stacked ? "center" : "flex-start",
+          gap: stacked ? rhythm : S.pad * 0.85,
+          flex: 1,
+        }}
+      >
         {side(model.left)}
-        {!wide && <div style={{ display: "flex", justifyContent: "center", color: K.arc, fontSize: S.label }}>↓</div>}
+        {stacked && <div style={{ display: "flex", color: K.arc, fontSize: S.body, lineHeight: 1 }}>↓</div>}
         {side(model.right)}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", color: K.muted, fontSize: S.small }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          color: K.muted,
+          fontSize: S.small,
+          marginTop: S.pad * 0.4,
+          paddingTop: rhythm,
+          borderTop: `1px solid ${K.hairline}`,
+        }}
+      >
         <div style={{ fontFamily: "Cormorant", fontStyle: "italic", fontSize: S.label * 0.9, color: P.fg }}>{SITE_NAME}</div>
         <div style={{ letterSpacing: 2 }}>{SITE_HOST.toUpperCase()}</div>
       </div>
