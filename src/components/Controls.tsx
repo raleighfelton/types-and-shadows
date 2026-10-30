@@ -116,11 +116,15 @@ export function PassageSearch({
   onGo,
   className = "",
   inputClassName = "",
+  autoFocus,
+  onBlur,
 }: {
   canon: Canon;
   onGo: (idx: number) => void;
   className?: string;
   inputClassName?: string;
+  autoFocus?: boolean;
+  onBlur?: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [error, setError] = useState(false);
@@ -146,6 +150,8 @@ export function PassageSearch({
         aria-label="Go to a passage"
         aria-invalid={error}
         enterKeyHint="go"
+        autoFocus={autoFocus}
+        onBlur={onBlur}
         className={`control bg-transparent placeholder:text-muted focus:outline-none ${error ? "border-error/70" : ""} ${inputClassName}`}
       />
     </form>

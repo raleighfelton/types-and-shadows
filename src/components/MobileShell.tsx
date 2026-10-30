@@ -73,13 +73,13 @@ export default function MobileShell(p: Props) {
   };
 
   // Small map strip; tapping it opens the full map.
-  const miniMap = (opts: { mode: Mode; focusEntry: number | null; focusVerse: number | null }) =>
+  const miniMap = (opts: { mode: Mode; focusEntry: number | null; focusVerse: number | null; className?: string }) =>
     arcs && (
       <button
         type="button"
         onClick={() => p.onTab("map")}
         aria-label="Open the full map"
-        className="relative h-[104px] w-full shrink-0 border-b border-parchment/10"
+        className={`relative w-full shrink-0 ${opts.className ?? "h-[104px] border-b border-parchment/10"}`}
       >
         <ArcCanvas
           {...shared}
@@ -196,12 +196,12 @@ export default function MobileShell(p: Props) {
 
         {tab === "read" && (
           <section className="absolute inset-0 flex flex-col">
-            <PassageSearch canon={canon} onGo={p.onOpenVerse} className="px-4 pb-3 pt-1" inputClassName="w-full text-[16px]" />
             {p.readerAt ? (
               <>
-                {p.focus !== null && miniMap({ mode: "all", focusEntry: null, focusVerse: p.focus })}
                 <div className="min-h-0 flex-1">
                   <Reader
+                    compact
+                    sheetMap={miniMap({ mode: "all", focusEntry: null, focusVerse: p.focus, className: "mb-3 h-[84px] rounded-lg bg-ink" })}
                     canon={canon}
                     translation={p.translation}
                     book={p.readerAt.book}
@@ -219,7 +219,8 @@ export default function MobileShell(p: Props) {
                 </div>
               </>
             ) : (
-              <div className="px-6 pt-10">
+              <div className="px-6 pt-4">
+                <PassageSearch canon={canon} onGo={p.onOpenVerse} className="mb-8" inputClassName="w-full text-[16px]" />
                 <p className="font-display text-2xl leading-snug text-parchment/80">
                   Tap any chapter on the map to read it, or search above.
                 </p>

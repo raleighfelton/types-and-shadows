@@ -135,14 +135,16 @@ export default function Explorer() {
         const idx = parseRefId(canon, part);
         if (idx !== null) {
           setMode("all");
-          openVerse(idx);
+          // "Heb.10" opens the chapter; "Heb.10.7" also selects the verse.
+          if (part.split(".")[2]) openVerse(idx);
+          else openChapter(idx);
         }
       }
     };
     apply();
     window.addEventListener("hashchange", apply);
     return () => window.removeEventListener("hashchange", apply);
-  }, [canon, entries, openEntry, openVerse, exploreBook]);
+  }, [canon, entries, openEntry, openVerse, openChapter, exploreBook]);
 
   useEffect(() => {
     if (!canon) return;
