@@ -217,10 +217,12 @@ export function drawTypeArcs(
 }
 
 /** Field brightness: types mode keeps the rainbow faint behind the colored arcs. */
-export function fieldAlpha(mode: "all" | "types", C: Colors, width: number, quiet = false) {
+export function fieldAlpha(mode: "all" | "types", C: Colors, width: number, { quiet = false, compact = false } = {}) {
   return (
     (mode === "types" ? (C.light ? 0.0035 : 0.006) : quiet ? 0.01 : 0.022) *
     // Narrow screens pack the same arcs into far fewer pixels.
-    Math.min(1, Math.max(0.15, Math.pow(width / 1000, 1.5)))
+    Math.min(1, Math.max(0.15, Math.pow(width / 1000, 1.5))) *
+    // The small strip is quieter on paper (light's gain overshoots there).
+    (compact && C.light ? 0.6 : 1)
   );
 }

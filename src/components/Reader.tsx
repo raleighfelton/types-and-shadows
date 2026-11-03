@@ -33,26 +33,29 @@ type Props = {
   onPreview?: (to: number | null) => void;
   onExploreBook: (book: number) => void;
   /**
-   * Phone layout: a one-line header with a tap-to-search title, the chapter
-   * using the whole screen, and connections in a bottom sheet over the text.
+   * Phone layout: a one-line header with a tap-to-search title, and tapping a
+   * verse opens its own page of connections over the chapter.
    */
   compact?: boolean;
-  /** Shown at the top of the connections sheet (phones): the map strip. */
-  sheetMap?: React.ReactNode;
+  /** Shown under the verse on its page (phones): the map strip. */
+  verseMap?: React.ReactNode;
+  /**
+   * Phones: the verse whose page is open (held by the shell so it survives
+   * tab switches). Shown only while it's the focus, so any other focus change
+   * (a link, a new chapter) closes it and leaves that verse highlighted.
+   */
+  page?: number | null;
+  onPage?: (idx: number | null) => void;
 };
 
 const PAGE = 10;
-/** Phones: the open connections sheet, and the room its one-line peek takes. */
-const SHEET_H = "56dvh";
-const SHEET_PEEK = "5rem";
 
 export default function Reader(p: Props) {
   const { canon, translation, book, chapter, focus, xrefs, entries } = p;
   const b = canon.books[book];
   const [text, setText] = useState<string[] | null>(null);
   const [shown, setShown] = useState(PAGE);
-  // Phones: the connections sheet is either peeking (one line) or open.
-  const [sheetOpen, setSheetOpen] = useState(true);
+  const pageOpen = !!p.compact && focus !== null && p.page === focus;
   const scroller = useRef<HTMLDivElement>(null);
   const first = toIndex(canon, { book, chapter, verse: 1 });
 
@@ -67,7 +70,6 @@ export default function Reader(p: Props) {
 
   useEffect(() => {
     setShown(PAGE);
-    setSheetOpen(true);
   }, [focus]);
 
   // A new chapter starts at the top.
@@ -78,11 +80,11 @@ export default function Reader(p: Props) {
   // Keep the focused verse in view.
   useEffect(() => {
     if (focus === null || !text) return;
-    // On phones the sheet covers the lower half, so bring the verse near the top.
+    // Under an open verse page it only needs to be there on the way back.
     scroller.current
       ?.querySelector(`[data-v="${focus}"]`)
-      ?.scrollIntoView({ block: p.compact ? "start" : "center", behavior: "smooth" });
-  }, [focus, text, p.compact]);
+      ?.scrollIntoView({ block: "center", behavior: pageOpen ? "auto" : "smooth" });
+  }, [focus, text, pageOpen]);
 
   // Which verses in this chapter belong to a curated type.
   const typed = useMemo(() => {
@@ -159,6 +161,12 @@ export default function Reader(p: Props) {
     </>
   );
 
+  const pick = (idx: number) => {
+    if (!p.compact) return p.onFocus(focus === idx ? null : idx);
+    p.onFocus(idx);
+    p.onPage?.(idx);
+  };
+
   const nav = { prev, next, onExploreBook: () => p.onExploreBook(book), name: b.name, chapter, nt: b.nt };
 
   return (
@@ -167,9 +175,7 @@ export default function Reader(p: Props) {
 
       <div
         ref={scroller}
-        className={`min-h-0 flex-1 overflow-y-auto ${p.compact ? "px-5 pt-4" : "px-7 py-6"}`}
-        // Room to scroll the last verses above the connections sheet.
-        style={p.compact ? { paddingBottom: focus === null ? "2rem" : sheetOpen ? `calc(${SHEET_H} + 2dvh)` : SHEET_PEEK } : undefined}
+        className={`min-h-0 flex-1 overflow-y-auto ${p.compact ? "px-5 pb-8 pt-4" : "px-7 py-6"}`}
       >
         {!text ? (
           <div className="space-y-3">
@@ -188,9 +194,9 @@ export default function Reader(p: Props) {
                   data-v={idx}
                   role="button"
                   tabIndex={0}
-                  onClick={() => p.onFocus(focus === idx ? null : idx)}
-                  onKeyDown={(e) => e.key === "Enter" && p.onFocus(focus === idx ? null : idx)}
-                  className={`verse scroll-mt-4 ${focus === idx ? "is-focus" : ""}`}
+                  onClick={() => pick(idx)}
+                  onKeyDown={(e) => e.key === "Enter" && pick(idx)}
+                  className={`verse ${focus === idx ? "is-focus" : ""}`}
                 >
                   <sup>
                     {mark && <i className="type-dot" style={{ background: mark }} />}
@@ -204,50 +210,85 @@ export default function Reader(p: Props) {
         )}
       </div>
 
-      {focus !== null &&
-        (p.compact ? (
-          <section
-            className="sheet absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-2xl border-t border-parchment/15 bg-ink-2"
-            style={sheetOpen ? { height: SHEET_H } : undefined}
-          >
-            <div className="flex items-center gap-2 px-5 pb-2 pt-1.5">
-              <button
-                type="button"
-                onClick={() => setSheetOpen((o) => !o)}
-                aria-expanded={sheetOpen}
-                className="flex min-w-0 flex-1 flex-col items-start"
-              >
-                <span aria-hidden className="mx-auto mb-1.5 h-1 w-10 rounded-full bg-parchment/25" />
-                <span className="smallcaps text-sm text-soft">
-                  From <span className="text-parchment">{formatRange(canon, focus, focus)}</span>
-                  {xrefs && <span className="text-muted"> · {xrefs.length} connections</span>}
-                  <span className="ml-1 text-muted">{sheetOpen ? "▾" : "▴"}</span>
-                </span>
-              </button>
-              <button type="button" aria-label="Close connections" className="icon-btn is-lg" onClick={() => p.onFocus(null)}>
-                ×
-              </button>
-            </div>
-            {/* Hidden, not unmounted, when peeking: keeps the map strip's WebGL context alive. */}
-            <div className={`min-h-0 flex-1 overflow-y-auto px-5 pb-5 ${sheetOpen ? "" : "hidden"}`}>
-              {p.sheetMap}
-              {connections}
-            </div>
-          </section>
-        ) : (
-          <section className="max-h-[52%] min-h-0 overflow-y-auto border-t border-parchment/10 bg-ink-2/60 px-7 py-5">
-            <div className="mb-3 flex items-baseline justify-between">
-              <h3 className="smallcaps text-sm text-soft">
-                From <span className="text-parchment">{formatRange(canon, focus, focus)}</span>
-              </h3>
-              <button type="button" className="smallcaps text-xs text-muted hover:text-parchment" onClick={() => p.onFocus(null)}>
-                Clear
-              </button>
-            </div>
-            {connections}
-          </section>
-        ))}
+      {/* Hidden rather than unmounted when closed, so the map strip keeps its WebGL context. */}
+      {p.compact && focus !== null && (
+        <VersePage
+          open={pageOpen}
+          focus={focus}
+          back={`${b.name} ${chapter}`}
+          refLabel={formatRange(canon, focus, focus)}
+          text={text}
+          first={first}
+          map={p.verseMap}
+          onBack={() => p.onPage?.(null)}
+          onStep={pick}
+        >
+          {connections}
+        </VersePage>
+      )}
+      {!p.compact && focus !== null && (
+        <section className="max-h-[52%] min-h-0 overflow-y-auto border-t border-parchment/10 bg-ink-2/60 px-7 py-5">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h3 className="smallcaps text-sm text-soft">
+              From <span className="text-parchment">{formatRange(canon, focus, focus)}</span>
+            </h3>
+            <button type="button" className="smallcaps text-xs text-muted hover:text-parchment" onClick={() => p.onFocus(null)}>
+              Clear
+            </button>
+          </div>
+          {connections}
+        </section>
+      )}
     </div>
+  );
+}
+
+/** Phones: one verse on its own page, with its connections, over the chapter. */
+function VersePage(v: {
+  open: boolean;
+  focus: number;
+  back: string;
+  refLabel: string;
+  text: string[] | null;
+  first: number;
+  map: React.ReactNode;
+  onBack: () => void;
+  onStep: (idx: number) => void;
+  children: React.ReactNode;
+}) {
+  const body = useRef<HTMLDivElement>(null);
+  // Each verse's page starts at the top.
+  useEffect(() => {
+    body.current?.scrollTo({ top: 0 });
+  }, [v.focus]);
+  const n = v.focus - v.first + 1;
+  const step = "link-btn smallcaps text-meta";
+  return (
+    <section className={`verse-page absolute inset-0 z-10 flex-col bg-ink ${v.open ? "flex" : "hidden"}`}>
+      <button type="button" onClick={v.onBack} className="link-btn border-b border-parchment/10 px-5 py-3.5 text-left text-[17px]">
+        ‹ {v.back}
+      </button>
+      <div ref={body} className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-5">
+        <div className="smallcaps text-meta text-muted">{v.refLabel}</div>
+        <blockquote className="mt-1 font-serif text-[calc(24px*var(--read-scale))] leading-snug text-parchment">
+          {v.text && <VerseText text={v.text[n - 1]} />}
+        </blockquote>
+        <div className="mb-4 mt-5">{v.map}</div>
+        {v.children}
+        <div className="mt-8 flex">
+          {n > 1 && (
+            <button type="button" className={step} onClick={() => v.onStep(v.focus - 1)}>
+              ‹ Verse {n - 1}
+            </button>
+          )}
+          {v.text && n < v.text.length && (
+            <button type="button" className={`${step} ml-auto`} onClick={() => v.onStep(v.focus + 1)}>
+              Verse {n + 1} ›
+            </button>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -392,10 +433,10 @@ function XrefItem({
       </button>
       {selected && (
         <div className="mt-1 flex flex-wrap gap-x-5 gap-y-1">
-          <button type="button" onClick={() => onGo(from)} className="smallcaps text-meta text-[var(--link)] hover:text-parchment">
+          <button type="button" onClick={() => onGo(from)} className="link-btn smallcaps text-meta">
             Read {formatRange(canon, from, from)} in context ›
           </button>
-          <button type="button" onClick={() => setSharing(true)} className="smallcaps text-meta text-[var(--link)] hover:text-parchment">
+          <button type="button" onClick={() => setSharing(true)} className="link-btn smallcaps text-meta">
             Share this connection
           </button>
         </div>

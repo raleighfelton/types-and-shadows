@@ -167,6 +167,14 @@ body {
   color: color-mix(in oklab, var(--color-parchment) 55%, transparent);
   transition: color 140ms, background 140ms;
 }
+.link-btn {
+  color: var(--link, var(--color-link));
+  transition: color 140ms;
+}
+.link-btn:hover {
+  color: var(--color-parchment);
+}
+
 .icon-btn.is-lg {
   width: 40px;
   height: 40px;
@@ -186,10 +194,15 @@ body {
     animation-name: lift;
   }
 }
-/* Phone connections sheet: rises over the text. */
-.sheet {
-  animation: lift 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  box-shadow: 0 -18px 40px -16px rgb(0 0 0 / 0.45);
+/* Phones: a verse's page slides in over its chapter (transform only, so it
+   never waits on a busy canvas). */
+.verse-page {
+  animation: push 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes push {
+  from {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes lift {

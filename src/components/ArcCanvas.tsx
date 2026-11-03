@@ -108,7 +108,7 @@ export default function ArcCanvas(props: Props) {
     };
   }, []);
 
-  const alpha = fieldAlpha(mode, C, size.w, focusVerse !== null || hover?.kind === "chapter") * (compact ? 0.6 : 1);
+  const alpha = fieldAlpha(mode, C, size.w, { quiet: focusVerse !== null || hover?.kind === "chapter", compact });
 
   useEffect(() => {
     renderer.current?.setArcs(filtered.gpu);
