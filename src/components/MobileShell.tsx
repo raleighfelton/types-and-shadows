@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { type Mode, VOTE_STEPS } from "@/lib/arcs";
 import { type Canon, type TranslationId, type VerseRef, type XRef, parseQuery, toIndex } from "@/lib/bible";
 import type { Theme } from "@/lib/palette";
@@ -52,6 +51,9 @@ type Props = {
   onOpenVerse: (idx: number) => void;
   onOpenChapter: (idx: number) => void;
   onOpenEntry: (i: number | null) => void;
+  /** Whether the focused verse's page is open in the Read tab (see Reader). */
+  versePageOpen: boolean;
+  onVersePage: (idx: number | null) => void;
 };
 
 const SUGGESTIONS = ["Gen 22", "Exod 12", "Ps 22", "Isa 53", "John 3", "Heb 9"];
@@ -59,8 +61,6 @@ const SUGGESTIONS = ["Gen 22", "Exod 12", "Ps 22", "Isa 53", "John 3", "Heb 9"];
 export default function MobileShell(p: Props) {
   const { canon, arcs, entries, typeArcs, tab, mode, book } = p;
   const minVotes = VOTE_STEPS[p.voteStep];
-  // Read tab: the verse whose page is open (see Reader).
-  const [versePage, setVersePage] = useState<number | null>(null);
   // Suggestions are known-good references.
   const go = (q: string) => p.onOpenVerse(toIndex(canon, parseQuery(canon, q)!));
 
@@ -204,8 +204,8 @@ export default function MobileShell(p: Props) {
                 <div className="min-h-0 flex-1">
                   <Reader
                     compact
-                    page={versePage}
-                    onPage={setVersePage}
+                    versePageOpen={p.versePageOpen}
+                    onVersePage={p.onVersePage}
                     verseMap={miniMap({ mode: "all", focusEntry: null, focusVerse: p.focus, className: "h-[96px] rounded-lg bg-ink-2" })}
                     canon={canon}
                     translation={p.translation}

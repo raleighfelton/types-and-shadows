@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Mode, VOTE_STEPS, filterArcs } from "@/lib/arcs";
 import {
   type Canon,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/bible";
 import { useReadingSettings } from "@/lib/settings";
 import { type Entry, type ThemeId, resolveEntries, typeArcs as buildTypeArcs } from "@/lib/typology";
+import { useHistoryEntry } from "@/lib/useHistoryEntry";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import ArcCanvas from "./ArcCanvas";
 import BookPicker from "./BookPicker";
@@ -42,6 +43,8 @@ export default function Explorer() {
   const [focus, setFocusState] = useState<number | null>(null);
   const [focusXrefs, setFocusXrefs] = useState<XRef[] | null>(null);
   const [book, setBook] = useState<number | null>(null); // null = whole Bible
+  // Phones: the verse whose page is open over the reader.
+  const [versePage, setVersePage] = useState<number | null>(null);
   const [pinned, setPinned] = useState<number | null>(null);
   const [preview, setPreview] = useState<number | null>(null);
   const isMobile = useMediaQuery("(max-width: 767px)");
@@ -75,6 +78,8 @@ export default function Explorer() {
   // A new focus verse clears the selected connection.
   const setFocus = useCallback((idx: number | null) => {
     setFocusState(idx);
+    // Any focus change closes a verse page (opening one sets it again after).
+    setVersePage(null);
     setPinned(null);
     setPreview(null);
   }, []);
@@ -141,12 +146,17 @@ export default function Explorer() {
         }
       }
     };
+    // Only hashes the app didn't write (typed, or a link) are applied. Going
+    // back to one it wrote, e.g. from a verse page, keeps the current state and
+    // the URL is rewritten to match.
+    const onHash = () => !history.state?.app && apply();
     apply();
-    window.addEventListener("hashchange", apply);
-    return () => window.removeEventListener("hashchange", apply);
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
   }, [canon, entries, openEntry, openVerse, openChapter, exploreBook]);
 
-  useEffect(() => {
+  const writeHash = useRef(() => {});
+  writeHash.current = () => {
     if (!canon) return;
     const parts: string[] = [];
     if (book !== null) parts.push(`book/${canon.books[book].osis}`);
@@ -155,8 +165,20 @@ export default function Explorer() {
       const r = fromIndex(canon, focus ?? panel.at);
       parts.push(`${canon.books[r.book].osis}.${r.chapter}${focus !== null ? `.${r.verse}` : ""}`);
     }
-    history.replaceState(null, "", parts.length ? `#${parts.join("&")}` : location.pathname);
-  }, [canon, panel, focus, entries, book]);
+    const url = parts.length ? `#${parts.join("&")}` : location.pathname;
+    const current = parts.length ? location.hash : location.pathname + location.hash;
+    if (current !== url || !history.state?.app) history.replaceState({ ...history.state, app: true }, "", url);
+  };
+  useEffect(() => writeHash.current(), [canon, panel, focus, entries, book]);
+  // After any back or forward, the URL follows the current state.
+  useEffect(() => {
+    const onPop = () => writeHash.current();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const versePageOpen = versePage !== null && versePage === focus;
+  useHistoryEntry(versePageOpen, () => setVersePage(null));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -239,6 +261,8 @@ export default function Explorer() {
           onOpenVerse={openVerse}
           onOpenChapter={openChapter}
           onOpenEntry={openEntry}
+          versePageOpen={versePageOpen}
+          onVersePage={setVersePage}
         />
       </>
     );
