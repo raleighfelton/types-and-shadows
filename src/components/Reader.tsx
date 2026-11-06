@@ -39,13 +39,9 @@ type Props = {
   compact?: boolean;
   /** Shown under the verse on its page (phones): the map strip. */
   verseMap?: React.ReactNode;
-  /**
-   * Phones: the verse whose page is open (held by the shell so it survives
-   * tab switches). Shown only while it's the focus, so any other focus change
-   * (a link, a new chapter) closes it and leaves that verse highlighted.
-   */
-  page?: number | null;
-  onPage?: (idx: number | null) => void;
+  /** Phones: the focused verse's page is open (held above, with the back gesture). */
+  versePageOpen?: boolean;
+  onVersePage?: (idx: number | null) => void;
 };
 
 const PAGE = 10;
@@ -55,7 +51,7 @@ export default function Reader(p: Props) {
   const b = canon.books[book];
   const [text, setText] = useState<string[] | null>(null);
   const [shown, setShown] = useState(PAGE);
-  const pageOpen = !!p.compact && focus !== null && p.page === focus;
+  const pageOpen = !!p.compact && !!p.versePageOpen;
   const scroller = useRef<HTMLDivElement>(null);
   const first = toIndex(canon, { book, chapter, verse: 1 });
 
@@ -141,6 +137,7 @@ export default function Reader(p: Props) {
                 onSelect={() => p.onSelect(p.selected === a ? null : a)}
                 onPreview={p.onPreview}
                 onGo={p.onGo}
+                large={p.compact}
               />
             ))}
           </ol>
@@ -164,7 +161,7 @@ export default function Reader(p: Props) {
   const pick = (idx: number) => {
     if (!p.compact) return p.onFocus(focus === idx ? null : idx);
     p.onFocus(idx);
-    p.onPage?.(idx);
+    p.onVersePage?.(idx);
   };
 
   const nav = { prev, next, onExploreBook: () => p.onExploreBook(book), name: b.name, chapter, nt: b.nt };
@@ -220,7 +217,7 @@ export default function Reader(p: Props) {
           text={text}
           first={first}
           map={p.verseMap}
-          onBack={() => p.onPage?.(null)}
+          onBack={() => p.onVersePage?.(null)}
           onStep={pick}
         >
           {connections}
@@ -265,12 +262,14 @@ function VersePage(v: {
   const step = "link-btn smallcaps text-meta";
   return (
     <section className={`verse-page absolute inset-0 z-10 flex-col bg-ink ${v.open ? "flex" : "hidden"}`}>
-      <button type="button" onClick={v.onBack} className="link-btn border-b border-parchment/10 px-5 py-3.5 text-left text-[17px]">
-        ‹ {v.back}
-      </button>
+      <header className="flex items-center justify-between border-b border-parchment/10 py-1.5 pl-2 pr-5 text-[17px]">
+        <button type="button" onClick={v.onBack} className="link-btn px-3 py-2">
+          ‹ {v.back}
+        </button>
+        <h2 className="text-parchment">{v.refLabel}</h2>
+      </header>
       <div ref={body} className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-5">
-        <div className="smallcaps text-meta text-muted">{v.refLabel}</div>
-        <blockquote className="mt-1 font-serif text-[calc(24px*var(--read-scale))] leading-snug text-parchment">
+        <blockquote className="font-serif text-[calc(20px*var(--read-scale))] leading-normal text-parchment">
           {v.text && <VerseText text={v.text[n - 1]} />}
         </blockquote>
         <div className="mb-4 mt-5">{v.map}</div>
@@ -383,9 +382,12 @@ function XrefItem({
   onSelect,
   onPreview,
   onGo,
+  large,
 }: {
   canon: Canon;
   translation: TranslationId;
+  /** Phones: on the verse page the connections are the reading, so they read near the verse's size. */
+  large?: boolean;
   /** The focused verse this cross-reference comes from. */
   origin: number;
   from: number;
@@ -408,13 +410,13 @@ function XrefItem({
     >
       <button type="button" onClick={onSelect} aria-pressed={selected} className="block w-full text-left">
         <span className="flex items-baseline justify-between gap-3">
-          <span className="xref-ref font-display text-lg">{formatRange(canon, from, to)}</span>
+          <span className={`xref-ref font-display ${large ? "text-[1.3rem]" : "text-lg"}`}>{formatRange(canon, from, to)}</span>
           <span className="smallcaps shrink-0 text-meta text-muted" title="OpenBible.info votes">
             {votes} {votes === 1 ? "vote" : "votes"}
           </span>
         </span>
         {selected ? (
-          <span className="mt-1 block text-[calc(16px*var(--read-scale))] leading-relaxed text-parchment/90">
+          <span className={`mt-1 block leading-relaxed text-parchment/90 ${large ? "text-[calc(17px*var(--read-scale))]" : "text-[calc(16px*var(--read-scale))]"}`}>
             {verses
               ? verses.map((v) => (
                   <span key={v.n}>
@@ -426,7 +428,7 @@ function XrefItem({
             {to > end && <span className="italic text-muted"> continues in context…</span>}
           </span>
         ) : (
-          <span className="line-clamp-2 text-[calc(15px*var(--read-scale))] leading-snug text-soft">
+          <span className={`line-clamp-2 text-soft ${large ? "text-[calc(17px*var(--read-scale))] leading-[1.55]" : "text-[calc(15px*var(--read-scale))] leading-snug"}`}>
             {verses ? verses.map((v) => v.text).join(" ") + (to > end ? " …" : "") : "…"}
           </span>
         )}
