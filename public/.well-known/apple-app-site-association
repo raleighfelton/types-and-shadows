@@ -2,7 +2,7 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["4S84QBRRAX.app.typesandshadows"],
+        "appIDs": ["477JA3H3FK.app.typesandshadows"],
         "components": [
           { "/": "/card*", "exclude": true, "comment": "Share images stay in the browser" },
           { "/": "/data/*", "exclude": true },
