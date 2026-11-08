@@ -5,13 +5,14 @@ import { PALETTE_COLORS } from "@/lib/settingsConfig";
 export function IconArt({ size }: { size: number }) {
   const bands = [6, 5, 4, 3, 2].map((i) => STOPS[i][1].map((v) => Math.round(v * 255)).join(","));
   const cx = size / 2;
-  const base = size * 0.7;
-  const w = size * 0.075;
+  // The bands carry the visual weight, so the arc sits above true center to read centered.
+  const base = size * 0.645;
+  const w = size * 0.077;
   return (
     <div style={{ width: size, height: size, display: "flex", background: PALETTE_COLORS.lapis.dark.ink, borderRadius: size * 0.22 }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         {bands.map((c, k) => {
-          const r = size * 0.36 - k * w;
+          const r = size * 0.37 - k * w;
           return (
             <path key={k} d={`M ${cx - r} ${base} A ${r} ${r} 0 0 1 ${cx + r} ${base}`} fill="none" stroke={`rgb(${c})`} strokeWidth={w * 0.9} />
           );
