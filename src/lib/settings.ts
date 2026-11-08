@@ -1,5 +1,7 @@
 "use client";
 
+import { track } from "@/lib/analytics";
+
 import { useEffect, useState } from "react";
 import type { Theme } from "./palette";
 import { DEFAULTS, type FontId, PALETTE_COLORS, type PaletteId, SETTINGS_KEY, type Settings, applySettings } from "./settingsConfig";
@@ -44,6 +46,9 @@ export function useReadingSettings() {
   return {
     settings,
     theme,
-    update: (patch: Partial<Settings>) => setSettings((s) => ({ ...s, ...patch })),
+    update: (patch: Partial<Settings>) => {
+      track("setting_changed", patch);
+      setSettings((s) => ({ ...s, ...patch }));
+    },
   };
 }

@@ -16,15 +16,17 @@ export default function Privacy() {
         <p>Types &amp; Shadows is a free study tool. It has no accounts, no ads and no tracking.</p>
         <h2 className="pt-4 font-display text-2xl text-parchment">The iOS app</h2>
         <p>
-          The app collects nothing. Everything it needs (the Bible text, the cross-references and the curated types) is
-          included in the app, so it works offline and sends no requests about what you read. Your reading settings stay
-          on your device. When you share an image or a link, it goes only where you send it through your device&apos;s
-          share sheet.
+          Everything the app needs (the Bible text, the cross-references and the curated types) is included in the
+          app, so it works offline. It sends anonymous usage counts (which screens and features are used, and which
+          chapters and types are opened) to PostHog so the app can be improved. Nothing identifies you, there are no
+          accounts, and the counts are not linked to you. Your reading settings stay on your device. When you share an
+          image or a link, it goes only where you send it through your device&apos;s share sheet.
         </p>
         <h2 className="pt-4 font-display text-2xl text-parchment">The website</h2>
         <p>
-          typesandshadows.app uses Vercel Web Analytics to count visits. It is anonymous, uses no cookies, and stores no
-          personal information. Your reading settings are kept in your browser.
+          typesandshadows.app counts visits and which features get used (Vercel Web Analytics and PostHog). Both are
+          anonymous: no cookies, no accounts, and nothing that identifies you. Your reading settings are kept in your
+          browser.
         </p>
         <h2 className="pt-4 font-display text-2xl text-parchment">Questions</h2>
         <p>
