@@ -16,6 +16,7 @@ import {
 import { useReadingSettings } from "@/lib/settings";
 import { type Entry, type ThemeId, resolveEntries, typeArcs as buildTypeArcs } from "@/lib/typology";
 import { useHistoryEntry } from "@/lib/useHistoryEntry";
+import { track } from "@/lib/analytics";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import ArcCanvas from "./ArcCanvas";
 import BookPicker from "./BookPicker";
@@ -92,6 +93,7 @@ export default function Explorer() {
       setLastReader(idx);
       setFocus(null);
       setTab("read");
+      track("chapter_opened", { idx });
     },
     [setFocus],
   );
@@ -102,6 +104,7 @@ export default function Explorer() {
       setLastReader(idx);
       setFocus(idx);
       setTab("read");
+      track("verse_opened", { idx });
     },
     [setFocus],
   );
@@ -113,6 +116,7 @@ export default function Explorer() {
       setEntryView(i);
       if (i !== null) setMode("types");
       setTab("types");
+      if (i !== null) track("type_opened", { index: i });
     },
     [setFocus],
   );
@@ -120,6 +124,7 @@ export default function Explorer() {
   const exploreBook = useCallback((b: number | null) => {
     setBook(b);
     setTab("map");
+    if (b !== null) track("book_zoomed", { book: b });
   }, []);
 
   // ---- URL hash: #John.3.16 or #type/serpent ------------------------------

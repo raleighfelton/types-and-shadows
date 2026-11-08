@@ -1,5 +1,7 @@
 "use client";
 
+import { track } from "@/lib/analytics";
+
 import { useEffect, useState } from "react";
 import type { TranslationId } from "@/lib/bible";
 import { downloadFile } from "@/lib/download";
@@ -63,14 +65,17 @@ export default function ShareSheet({
 
   function download() {
     if (file) downloadFile(file.file);
+    track("share_downloaded", { format, theme });
   }
 
   async function copy() {
+    track("link_copied");
     await navigator.clipboard.writeText(link);
     flash("Link copied");
   }
 
   async function share() {
+    track("share_opened", { format, theme });
     try {
       if (file && navigator.canShare?.({ files: [file.file] })) await navigator.share({ files: [file.file], title: name, url: link });
       else if (navigator.share) await navigator.share({ title: name, url: link });

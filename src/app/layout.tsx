@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Atkinson_Hyperlegible_Next, Cormorant_Garamond, EB_Garamond, Literata } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import AnalyticsInit from "@/components/AnalyticsInit";
 import { settingsScript } from "@/lib/settingsConfig";
 import { SITE_NAME, SITE_URL, TAGLINE } from "@/lib/site";
 import "./globals.css";
@@ -50,6 +51,8 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", title: SITE_NAME, description },
   description,
+  // Safari's banner for the iPhone app.
+  itunes: { appId: "6831792356" },
 };
 
 export const viewport: Viewport = {
@@ -74,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <Analytics />
+        <AnalyticsInit />
       </body>
     </html>
   );

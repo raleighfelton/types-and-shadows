@@ -1,5 +1,7 @@
 "use client";
 
+import { track } from "@/lib/analytics";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArcGL, MAX_DPR } from "@/lib/arcGL";
 import type { Mode } from "@/lib/arcs";
@@ -78,6 +80,7 @@ export default function PosterSheet({
     await new Promise((r) => setTimeout(r, 30));
     try {
       downloadFile(await posterFile(input));
+      track("poster_downloaded", { mode, size, theme });
     } catch {
       setError(true);
     } finally {
