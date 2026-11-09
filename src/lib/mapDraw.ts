@@ -2,6 +2,7 @@
 // and the downloadable poster. Everything here works in layout units; the
 // caller scales the context for the device or print resolution.
 import type { ArcLayout } from "./arcGL";
+import { haloText } from "./canvas";
 import { type Canon, SECTIONS } from "./bible";
 import type { Colors } from "./palette";
 import { type Entry, type ThemeId, type TypeArc, THEMES } from "./typology";
@@ -191,6 +192,16 @@ export function drawBase(ctx: CanvasRenderingContext2D, canon: Canon, layout: Ma
   ctx.fillText("New Testament →", ntX + 10, labels.testamentY);
 }
 
+/** A book's name lit in its place, with a wide halo clearing the ticks around it. */
+export function litBookLabel(ctx: CanvasRenderingContext2D, labels: MapLabels, book: number, fill: string, C: Colors) {
+  const L = labels.books[book];
+  if (!L) return;
+  ctx.font = `${HOVER_FONT} ${C.serif}`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  haloText(ctx, L.name, L.hoverX, labels.y, fill, C, 8);
+}
+
 /** The curated type arcs in their theme colors; others dim when one is `hot`. */
 export function drawTypeArcs(
   ctx: CanvasRenderingContext2D,
@@ -199,13 +210,13 @@ export function drawTypeArcs(
   typeArcs: TypeArc[],
   entries: Entry[],
   C: Colors,
-  { themeFilter = null, hot = null, weight = 1 }: { themeFilter?: ThemeId | null; hot?: number | null; weight?: number } = {},
+  { themeFilter = null, hot = null, weight = 1, dimAll = false }: { themeFilter?: ThemeId | null; hot?: number | null; weight?: number; dimAll?: boolean } = {},
 ) {
   const { trace } = mapGeometry(canon, layout);
   ctx.shadowBlur = 0;
   for (const t of typeArcs) {
     const e = entries[t.entry];
-    const dim = (themeFilter && e.theme !== themeFilter) || (hot !== null && hot !== t.entry);
+    const dim = dimAll || (themeFilter && e.theme !== themeFilter) || (hot !== null && hot !== t.entry);
     ctx.strokeStyle = typeInk(C, e);
     ctx.globalAlpha = dim ? DIM_ALPHA : t.primary ? 0.95 : 0.5;
     ctx.lineWidth = (t.primary ? 1.4 : 0.9) * weight;

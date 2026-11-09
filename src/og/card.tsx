@@ -2,7 +2,7 @@
 // Rendered by next/og (Satori): flexbox only, inline styles, every element
 // with more than one child needs display: flex.
 import { type Canon, type TranslationId, formatRange } from "@/lib/bible";
-import { deepen, spanColor } from "@/lib/palette";
+import { deepen, reach, spanColor } from "@/lib/palette";
 import { type PaletteColors, TEXT_MIX } from "@/lib/settingsConfig";
 import { FORMATS, type Format } from "@/lib/shareUrl";
 import { SITE_HOST, SITE_NAME, TAGLINE } from "@/lib/site";
@@ -118,7 +118,7 @@ function ArcBand({
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {arcs.arcs.map(([a, b], i) => (
-        <path key={i} d={d(a, b)} fill="none" stroke={spanColor(Math.sqrt(Math.abs(b - a) / arcs.total), light, alpha)} strokeWidth={1.2} />
+        <path key={i} d={d(a, b)} fill="none" stroke={spanColor(reach(a, b, arcs.total), light, alpha)} strokeWidth={1.2} />
       ))}
       {highlight && <path d={d(...highlight)} fill="none" stroke={color} strokeWidth={Math.max(4, width / 160)} strokeLinecap="round" />}
     </svg>
