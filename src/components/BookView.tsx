@@ -5,7 +5,7 @@ import type { Mode } from "@/lib/arcs";
 import { type Canon, type XRef, formatRange, fromIndex, loadXrefs, toIndex } from "@/lib/bible";
 import { dot, haloText, prep, strokeLink } from "@/lib/canvas";
 import { DIM_ALPHA, typeInk } from "@/lib/mapDraw";
-import { type Theme, colorsFor } from "@/lib/palette";
+import { type Theme, colorsFor, reach as reachOf } from "@/lib/palette";
 import type { PaletteId } from "@/lib/settingsConfig";
 import { type Entry, type ThemeId, entryTip } from "@/lib/typology";
 import { useElementSize } from "@/lib/useElementSize";
@@ -102,7 +102,7 @@ export default function BookView(p: Props) {
     // Rainbow position: how far the flow reaches, from its first verse to the target's middle.
     const reach = flows.map((f) => {
       const tb = canon.books[f.target];
-      return Math.sqrt(Math.abs(tb.start + tb.verses / 2 - f.firstVerse) / canon.total);
+      return reachOf(f.firstVerse, tb.start + tb.verses / 2, canon.total);
     });
     return { flows, reach, perChapter, perBook, total, maxChapter: Math.max(1, ...perChapter) };
   }, [xrefs, minVotes, verseBook, b, book, canon]);

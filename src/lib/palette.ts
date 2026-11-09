@@ -31,6 +31,11 @@ function spanRGB(s: number) {
   return c0.map((v, k) => v + (c1[k] - v) * t);
 }
 
+/** How far a connection reaches, 0..1: the rainbow's input. */
+export function reach(a: number, b: number, total: number) {
+  return Math.sqrt(Math.abs(b - a) / total);
+}
+
 /** Rainbow color for a connection reaching s = sqrt(distance / total), as rgba(). */
 export function spanColor(s: number, light: boolean, alpha = 1) {
   const c = spanRGB(s).map((v) => Math.round((light ? Math.pow(v, LIGHT_GAMMA) : v) * 255));

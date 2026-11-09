@@ -5,17 +5,8 @@ import { ArcGL, MAX_DPR } from "@/lib/arcGL";
 import { type Mode, filterArcs } from "@/lib/arcs";
 import { type Canon, type XRef, formatRange, fromIndex } from "@/lib/bible";
 import { dot, haloText, prep, strokeLink } from "@/lib/canvas";
-import {
-  HOVER_FONT,
-  computeLabels,
-  computeLayout,
-  drawBase,
-  drawTypeArcs,
-  fieldAlpha,
-  mapGeometry,
-  typeInk,
-} from "@/lib/mapDraw";
-import { type Theme, colorsFor } from "@/lib/palette";
+import { computeLabels, computeLayout, drawBase, drawTypeArcs, fieldAlpha, litBookLabel, mapGeometry, typeInk } from "@/lib/mapDraw";
+import { type Theme, colorsFor, reach } from "@/lib/palette";
 import type { PaletteId } from "@/lib/settingsConfig";
 import { type Entry, type ThemeId, type TypeArc, entryTip } from "@/lib/typology";
 import { useElementSize } from "@/lib/useElementSize";
@@ -108,6 +99,9 @@ export default function ArcCanvas(props: Props) {
     };
   }, []);
 
+  // With a verse selected the field steps aside: only that verse's reach shows.
+  const focused = focusVerse !== null && !compact;
+  const FOCUS_BASE_OPACITY = 0.35;
   const alpha = fieldAlpha(mode, C, size.w, { quiet: focusVerse !== null || hover?.kind === "chapter", compact });
 
   useEffect(() => {
@@ -117,7 +111,7 @@ export default function ArcCanvas(props: Props) {
   // Draw the field (with a one-time bloom on first load).
   useEffect(() => {
     const r = renderer.current;
-    if (!r || !size.w) return;
+    if (!r || !size.w || focused) return;
     const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
     if (revealed.current >= 1) {
       r.draw(layout, dpr, alpha, C.bg, C.light);
@@ -134,7 +128,7 @@ export default function ArcCanvas(props: Props) {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [layout, size.w, filtered, alpha, C]);
+  }, [layout, size.w, filtered, alpha, C, focused]);
 
   // Base layer: chapter bars and book labels.
   useEffect(() => {
@@ -158,7 +152,8 @@ export default function ArcCanvas(props: Props) {
 
     if (mode === "types") {
       const hot = hover?.kind === "entry" ? hover.entry : focusEntry;
-      drawTypeArcs(ctx, canon, layout, typeArcs, entries, C, { themeFilter, hot });
+      // While a verse is selected the curated arcs fall back like the field does.
+      drawTypeArcs(ctx, canon, layout, typeArcs, entries, C, { themeFilter, hot, dimAll: focused && hot === null });
       if (hot !== null) {
         const e = entries[hot];
         ctx.strokeStyle = typeInk(C, e);
@@ -189,18 +184,24 @@ export default function ArcCanvas(props: Props) {
     }
 
     if (focusVerse !== null && focusXrefs) {
-      ctx.strokeStyle = `rgb(${C.fg})`;
-      ctx.shadowColor = `rgb(${C.fg})`;
-      for (const [to, , votes] of focusXrefs) {
-        if (votes < minVotes) continue;
-        ctx.globalAlpha = link ? 0.18 : Math.min(1, 0.35 + Math.log10(Math.max(1, votes)) * 0.35);
-        ctx.lineWidth = votes >= 20 ? 1.6 : 1;
-        ctx.shadowBlur = C.glow(votes >= 20 ? 8 : 0);
-        arc(focusVerse, to);
-      }
-      ctx.shadowBlur = 0;
+      // Every connection of the verse (the vote slider is for the field), each
+      // colored by how far it reaches, with a dot where it lands.
       ctx.globalAlpha = 1;
-      dot(ctx, xOf(focusVerse), baseY, `rgb(${C.fg})`);
+      const k = compact ? 2 / 3 : 1;
+      const landed = new Set<number>();
+      for (const [to] of focusXrefs) {
+        const s = reach(focusVerse, to, total);
+        ctx.strokeStyle = C.span(s, link ? 0.25 : 0.95);
+        ctx.lineWidth = 1.8 * k;
+        arc(focusVerse, to);
+        dot(ctx, xOf(to), baseY, C.span(s, link ? 0.4 : 1), 3.2 * k);
+        landed.add(canon.verseBook[to]);
+      }
+      dot(ctx, xOf(focusVerse), baseY, `rgb(${C.fg})`, 4.5 * k);
+      // The books the arcs land in, lit against the faded row.
+      const home = canon.verseBook[focusVerse];
+      landed.add(home);
+      for (const b of landed) litBookLabel(ctx, labels, b, b === home ? `rgb(${C.fg})` : C.link, C);
     }
 
     if (link) {
@@ -236,16 +237,9 @@ export default function ArcCanvas(props: Props) {
       ctx.globalAlpha = 0.9;
       ctx.fillStyle = C.link;
       ctx.fillRect(x1, baseY - 1, Math.max(2, x2 - x1), 2);
-      const L = labels.books[hover.book];
-      if (L) {
-        // Named or not, the hovered book's name shows in its place.
-        ctx.globalAlpha = 1;
-        ctx.font = `${HOVER_FONT} ${C.serif}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        // A wide halo clears the neighboring ticks under the name.
-        haloText(ctx, L.name, L.hoverX, labels.y, C.link, C, 8);
-      }
+      // Named or not, the hovered book's name shows in its place.
+      ctx.globalAlpha = 1;
+      litBookLabel(ctx, labels, hover.book, C.link, C);
     }
 
     if (hover?.kind === "chapter") {
@@ -256,7 +250,7 @@ export default function ArcCanvas(props: Props) {
       ctx.fillRect(Math.round(xOf((start + end - 1) / 2)), baseY - 10, 1, 10);
     }
     ctx.globalAlpha = 1;
-  }, [layout, size, mode, hover, typeArcs, entries, themeFilter, focusVerse, focusXrefs, focusEntry, filtered, arcs, link, canon, C, minVotes, labels]);
+  }, [layout, size, mode, hover, typeArcs, entries, themeFilter, focusVerse, focusXrefs, focusEntry, filtered, arcs, link, canon, C, labels, focused, compact, total]);
 
   // ---- interaction --------------------------------------------------------
   const pending = useRef<number>(0);
@@ -302,6 +296,8 @@ export default function ArcCanvas(props: Props) {
       }
       return best >= 0 ? { kind: "entry", entry: best } : null;
     }
+    // The field is hidden while a verse is selected; nothing up here to hit.
+    if (focused) return null;
     // Field arcs: favor well-attested ones when several are close. Arcs are
     // sorted short → long, so skip every arc too short to reach this height.
     const { keep } = filtered;
@@ -365,8 +361,12 @@ export default function ArcCanvas(props: Props) {
       onPointerLeave={() => setHover(null)}
       onClick={onClick}
     >
-      <canvas ref={glRef} className="absolute inset-0 h-full w-full" />
-      <canvas ref={baseRef} className="absolute inset-0 h-full w-full" />
+      <canvas ref={glRef} className="absolute inset-0 h-full w-full transition-opacity duration-300" style={{ opacity: focused ? 0 : 1 }} />
+      <canvas
+        ref={baseRef}
+        className="absolute inset-0 h-full w-full transition-opacity duration-300"
+        style={{ opacity: focused ? FOCUS_BASE_OPACITY : 1 }}
+      />
       <canvas ref={overRef} className="absolute inset-0 h-full w-full" />
       {glError && (
         <p className="absolute inset-x-0 top-1/3 text-center text-soft italic">
