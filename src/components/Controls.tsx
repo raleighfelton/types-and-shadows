@@ -5,7 +5,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { type Mode, VOTE_STEPS } from "@/lib/arcs";
 import { type Canon, parseQuery, toIndex } from "@/lib/bible";
-import { AUTHOR_URL, SOURCE_URL } from "@/lib/site";
+import { APP_LIVE, AUTHOR_URL, SOURCE_URL } from "@/lib/site";
 import { useEscape } from "@/lib/usePopover";
 import InfoTip from "./InfoTip";
 
@@ -199,6 +199,7 @@ export function Credit({ withSource }: { withSource?: boolean }) {
 const ICONS = {
   share: "M12 15V3M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6",
   download: "M12 3v12M7 10l5 5 5-5M5 21h14",
+  phone: "M8 2.5h8a2 2 0 0 1 2 2v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-15a2 2 0 0 1 2-2ZM10.5 18.5h3",
 } as const;
 export function Icon({ name, size = 15 }: { name: keyof typeof ICONS; size?: number }) {
   return (
@@ -220,6 +221,22 @@ export function DownloadMapButton({ onClick, label }: { onClick: () => void; lab
     >
       <Icon name="download" />
       {label && <span className="smallcaps text-meta">Download</span>}
+    </button>
+  );
+}
+
+/** Opens the sheet about the iPhone and iPad app. */
+export function AppButton({ onClick, label }: { onClick: () => void; label?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={APP_LIVE ? "Get the iPhone app" : "The iPhone app, coming soon"}
+      title={APP_LIVE ? "Types & Shadows for iPhone and iPad" : "Types & Shadows for iPhone and iPad, coming soon"}
+      className="control flex h-[34px] items-center gap-2 px-3 text-soft hover:text-parchment"
+    >
+      <Icon name="phone" />
+      {label && <span className="smallcaps text-meta">iPhone app</span>}
     </button>
   );
 }

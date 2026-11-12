@@ -13,6 +13,7 @@ import {
   loadXrefs,
   parseRefId,
 } from "@/lib/bible";
+import { colorsFor } from "@/lib/palette";
 import { useReadingSettings } from "@/lib/settings";
 import { type Entry, type ThemeId, resolveEntries, typeArcs as buildTypeArcs } from "@/lib/typology";
 import { useHistoryEntry } from "@/lib/useHistoryEntry";
@@ -21,8 +22,10 @@ import { useMediaQuery } from "@/lib/useMediaQuery";
 import ArcCanvas from "./ArcCanvas";
 import BookPicker from "./BookPicker";
 import BookView from "./BookView";
-import { Credit, DownloadMapButton, ModeTabs, PassageSearch, VoteFilter } from "./Controls";
+import { AppButton, Credit, DownloadMapButton, ModeTabs, PassageSearch, VoteFilter } from "./Controls";
+import AppSheet from "./AppSheet";
 import PosterSheet from "./PosterSheet";
+import ReachStrip from "./ReachStrip";
 import MobileShell, { type Tab } from "./MobileShell";
 import { useQuote } from "./Passage";
 import Reader from "./Reader";
@@ -37,6 +40,7 @@ export default function Explorer() {
   const [arcs, setArcs] = useState<Int16Array | null>(null);
   const [mode, setMode] = useState<Mode>("types");
   const [posterOpen, setPosterOpen] = useState(false);
+  const [appOpen, setAppOpen] = useState(false);
   const [translation, setTranslation] = useState<TranslationId>("KJV");
   const [voteStep, setVoteStep] = useState(3);
   const [themeFilter, setThemeFilter] = useState<ThemeId | null>(null);
@@ -85,6 +89,7 @@ export default function Explorer() {
     setPreview(null);
   }, []);
   const linkTo = preview ?? pinned;
+  const mapColors = useMemo(() => colorsFor(reading.theme, reading.settings.palette), [reading.theme, reading.settings.palette]);
   const link = useMemo(() => (focus !== null && linkTo !== null ? { from: focus, to: linkTo } : null), [focus, linkTo]);
 
   const openChapter = useCallback(
@@ -228,16 +233,24 @@ export default function Explorer() {
     />
   );
 
+  const appSheet = appOpen && <AppSheet onClose={() => setAppOpen(false)} />;
+
   if (isMobile === null || (isMobile && !canon)) return <main className="h-dvh bg-ink" />;
   if (isMobile && canon) {
     return (
       <>
         {posterSheet}
+        {appSheet}
         <MobileShell
           theme={reading.theme}
           palette={reading.settings.palette}
           settingsButton={<ReadingSettings settings={reading.settings} onChange={reading.update} />}
-          downloadButton={arcs && <DownloadMapButton onClick={() => setPosterOpen(true)} />}
+          downloadButton={
+            <>
+              <AppButton onClick={() => setAppOpen(true)} />
+              {arcs && <DownloadMapButton onClick={() => setPosterOpen(true)} />}
+            </>
+          }
           canon={canon}
           arcs={arcs}
           entries={entries}
@@ -276,6 +289,7 @@ export default function Explorer() {
   return (
     <main className="flex h-dvh w-full flex-col overflow-hidden bg-ink text-parchment md:flex-row">
       {posterSheet}
+      {appSheet}
       <div className="relative min-w-0 flex-1">
         {canon && book !== null && (
           <BookView
@@ -349,6 +363,7 @@ export default function Explorer() {
             <TranslationPicker value={translation} onChange={changeTranslation} />
             <ReadingSettings settings={reading.settings} onChange={reading.update} />
             {arcs && <DownloadMapButton label onClick={() => setPosterOpen(true)} />}
+            <AppButton label onClick={() => setAppOpen(true)} />
           </div>
         </header>
 
@@ -399,6 +414,20 @@ export default function Explorer() {
               onSelect={setPinned}
               onPreview={setPreview}
               onExploreBook={setBook}
+              verseMap={
+                focus !== null &&
+                focusXrefs &&
+                focusXrefs.length > 0 && (
+                  <ReachStrip
+                    canon={canon}
+                    origin={focus}
+                    targets={focusXrefs.map((x) => x[0])}
+                    highlight={linkTo}
+                    colors={mapColors}
+                    className="h-[132px]"
+                  />
+                )
+              }
             />
           )}
           {panel.kind === "entry" && (

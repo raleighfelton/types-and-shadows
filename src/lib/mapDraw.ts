@@ -191,7 +191,10 @@ export function drawBase(ctx: CanvasRenderingContext2D, canon: Canon, layout: Ma
   ctx.fillText("New Testament →", ntX + 10, labels.testamentY);
 }
 
-/** The curated type arcs in their theme colors; others dim when one is `hot`. */
+/** How far the type arcs step back while a verse or connection is selected. */
+export const SELECTED_FADE = 0.07;
+
+/** The curated type arcs in their theme colors; others dim when one is `hot`, and all step back by `fade`. */
 export function drawTypeArcs(
   ctx: CanvasRenderingContext2D,
   canon: Canon,
@@ -199,7 +202,7 @@ export function drawTypeArcs(
   typeArcs: TypeArc[],
   entries: Entry[],
   C: Colors,
-  { themeFilter = null, hot = null, weight = 1 }: { themeFilter?: ThemeId | null; hot?: number | null; weight?: number } = {},
+  { themeFilter = null, hot = null, weight = 1, fade = 1 }: { themeFilter?: ThemeId | null; hot?: number | null; weight?: number; fade?: number } = {},
 ) {
   const { trace } = mapGeometry(canon, layout);
   ctx.shadowBlur = 0;
@@ -207,7 +210,7 @@ export function drawTypeArcs(
     const e = entries[t.entry];
     const dim = (themeFilter && e.theme !== themeFilter) || (hot !== null && hot !== t.entry);
     ctx.strokeStyle = typeInk(C, e);
-    ctx.globalAlpha = dim ? DIM_ALPHA : t.primary ? 0.95 : 0.5;
+    ctx.globalAlpha = (dim ? DIM_ALPHA : t.primary ? 0.95 : 0.5) * fade;
     ctx.lineWidth = (t.primary ? 1.4 : 0.9) * weight;
     ctx.beginPath();
     trace(ctx, t.a, t.b);
@@ -217,9 +220,23 @@ export function drawTypeArcs(
 }
 
 /** Field brightness: types mode keeps the rainbow faint behind the colored arcs. */
-export function fieldAlpha(mode: "all" | "types", C: Colors, width: number, { quiet = false, compact = false } = {}) {
+export function fieldAlpha(mode: "all" | "types", C: Colors, width: number, { quiet = false, selected = false, compact = false } = {}) {
   return (
-    (mode === "types" ? (C.light ? 0.0035 : 0.006) : quiet ? 0.01 : 0.022) *
+    // With a verse or connection selected, the whole field falls back to almost nothing.
+    // (On paper the lines layer instead of adding light, so they need far less ink to fade.)
+    (selected
+      ? C.light
+        ? 0.0008
+        : mode === "types"
+          ? 0.0012
+          : 0.0022
+      : mode === "types"
+        ? C.light
+          ? 0.0035
+          : 0.006
+        : quiet
+          ? 0.01
+          : 0.022) *
     // Narrow screens pack the same arcs into far fewer pixels.
     Math.min(1, Math.max(0.15, Math.pow(width / 1000, 1.5))) *
     // The small strip is quieter on paper (light's gain overshoots there).
