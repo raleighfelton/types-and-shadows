@@ -37,7 +37,7 @@ type Props = {
    * verse opens its own page of connections over the chapter.
    */
   compact?: boolean;
-  /** Shown under the verse on its page (phones): the map strip. */
+  /** Shown under the verse on its page: where it reaches. */
   verseMap?: React.ReactNode;
   /** Phones: the focused verse's page is open (held above, with the back gesture). */
   versePageOpen?: boolean;
@@ -51,7 +51,8 @@ export default function Reader(p: Props) {
   const b = canon.books[book];
   const [text, setText] = useState<string[] | null>(null);
   const [shown, setShown] = useState(PAGE);
-  const pageOpen = !!p.compact && !!p.versePageOpen;
+  // Phones open the verse page explicitly; in the desktop panel a focused verse is its page.
+  const pageOpen = p.compact ? !!p.versePageOpen : focus !== null;
   const scroller = useRef<HTMLDivElement>(null);
   const first = toIndex(canon, { book, chapter, verse: 1 });
 
@@ -137,7 +138,7 @@ export default function Reader(p: Props) {
                 onSelect={() => p.onSelect(p.selected === a ? null : a)}
                 onPreview={p.onPreview}
                 onGo={p.onGo}
-                large={p.compact}
+                large
               />
             ))}
           </ol>
@@ -159,7 +160,6 @@ export default function Reader(p: Props) {
   );
 
   const pick = (idx: number) => {
-    if (!p.compact) return p.onFocus(focus === idx ? null : idx);
     p.onFocus(idx);
     p.onVersePage?.(idx);
   };
@@ -208,47 +208,40 @@ export default function Reader(p: Props) {
       </div>
 
       {/* Hidden rather than unmounted when closed, so the map strip keeps its WebGL context. */}
-      {p.compact && focus !== null && (
+      {focus !== null && (
         <VersePage
           open={pageOpen}
+          panel={!p.compact}
           focus={focus}
           back={`${b.name} ${chapter}`}
           refLabel={formatRange(canon, focus, focus)}
           text={text}
           first={first}
           map={p.verseMap}
-          onBack={() => p.onVersePage?.(null)}
+          count={xrefs?.length ?? null}
+          onBack={() => (p.compact ? p.onVersePage?.(null) : p.onFocus(null))}
           onStep={pick}
         >
           {connections}
         </VersePage>
       )}
-      {!p.compact && focus !== null && (
-        <section className="max-h-[52%] min-h-0 overflow-y-auto border-t border-parchment/10 bg-ink-2/60 px-7 py-5">
-          <div className="mb-3 flex items-baseline justify-between">
-            <h3 className="smallcaps text-sm text-soft">
-              From <span className="text-parchment">{formatRange(canon, focus, focus)}</span>
-            </h3>
-            <button type="button" className="smallcaps text-xs text-muted hover:text-parchment" onClick={() => p.onFocus(null)}>
-              Clear
-            </button>
-          </div>
-          {connections}
-        </section>
-      )}
     </div>
   );
 }
 
-/** Phones: one verse on its own page, with its connections, over the chapter. */
+/** One verse on its own page, with where it reaches and its connections, over the chapter. */
 function VersePage(v: {
   open: boolean;
+  /** The desktop side panel (wider, on the panel color, clear of its close button). */
+  panel?: boolean;
   focus: number;
   back: string;
   refLabel: string;
   text: string[] | null;
   first: number;
   map: React.ReactNode;
+  /** How many connections the verse has (null while loading). */
+  count: number | null;
   onBack: () => void;
   onStep: (idx: number) => void;
   children: React.ReactNode;
@@ -261,18 +254,23 @@ function VersePage(v: {
   const n = v.focus - v.first + 1;
   const step = "link-btn smallcaps text-meta";
   return (
-    <section className={`verse-page absolute inset-0 z-10 flex-col bg-ink ${v.open ? "flex" : "hidden"}`}>
-      <header className="flex items-center justify-between border-b border-parchment/10 py-1.5 pl-2 pr-5 text-[17px]">
+    <section className={`verse-page absolute inset-0 flex-col ${v.panel ? "z-[5] bg-ink-2" : "z-10 bg-ink"} ${v.open ? "flex" : "hidden"}`}>
+      <header className={`flex items-center border-b border-parchment/10 py-1.5 text-[17px] ${v.panel ? "gap-4 pl-4 pr-14 pt-4 pb-3" : "justify-between pl-2 pr-5"}`}>
         <button type="button" onClick={v.onBack} className="link-btn px-3 py-2">
           ‹ {v.back}
         </button>
-        <h2 className="text-parchment">{v.refLabel}</h2>
+        <h2 className={v.panel ? "font-display text-[1.7rem] leading-none text-parchment" : "text-parchment"}>{v.refLabel}</h2>
       </header>
-      <div ref={body} className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-5">
-        <blockquote className="font-serif text-[calc(20px*var(--read-scale))] leading-normal text-parchment">
+      <div ref={body} className={`min-h-0 flex-1 overflow-y-auto pb-8 ${v.panel ? "px-7 pt-6" : "px-5 pt-5"}`}>
+        <blockquote className={`font-serif leading-normal text-parchment ${v.panel ? "text-[calc(21px*var(--read-scale))]" : "text-[calc(20px*var(--read-scale))]"}`}>
           {v.text && <VerseText text={v.text[n - 1]} />}
         </blockquote>
-        <div className="mb-4 mt-5">{v.map}</div>
+        <div className={v.panel ? "mb-6 mt-6" : "mb-4 mt-5"}>{v.map}</div>
+        {v.panel && v.count !== null && v.count > 0 && (
+          <h3 className="smallcaps mb-3 text-meta text-muted">
+            {v.count} connection{v.count === 1 ? "" : "s"} · ranked by readers
+          </h3>
+        )}
         {v.children}
         <div className="mt-8 flex">
           {n > 1 && (

@@ -13,6 +13,7 @@ import {
   drawTypeArcs,
   fieldAlpha,
   mapGeometry,
+  SELECTED_FADE,
   typeInk,
 } from "@/lib/mapDraw";
 import { type Theme, colorsFor } from "@/lib/palette";
@@ -108,7 +109,11 @@ export default function ArcCanvas(props: Props) {
     };
   }, []);
 
-  const alpha = fieldAlpha(mode, C, size.w, { quiet: focusVerse !== null || hover?.kind === "chapter", compact });
+  const alpha = fieldAlpha(mode, C, size.w, {
+    quiet: focusVerse !== null || hover?.kind === "chapter",
+    selected: link !== null || focusVerse !== null,
+    compact,
+  });
 
   useEffect(() => {
     renderer.current?.setArcs(filtered.gpu);
@@ -158,7 +163,9 @@ export default function ArcCanvas(props: Props) {
 
     if (mode === "types") {
       const hot = hover?.kind === "entry" ? hover.entry : focusEntry;
-      drawTypeArcs(ctx, canon, layout, typeArcs, entries, C, { themeFilter, hot });
+      // With a verse or connection selected, the types step back so it reads clearly.
+      const selected = hot === null && (link !== null || focusVerse !== null);
+      drawTypeArcs(ctx, canon, layout, typeArcs, entries, C, { themeFilter, hot, fade: selected ? SELECTED_FADE : 1 });
       if (hot !== null) {
         const e = entries[hot];
         ctx.strokeStyle = typeInk(C, e);
@@ -189,18 +196,25 @@ export default function ArcCanvas(props: Props) {
     }
 
     if (focusVerse !== null && focusXrefs) {
-      ctx.strokeStyle = `rgb(${C.fg})`;
-      ctx.shadowColor = `rgb(${C.fg})`;
-      for (const [to, , votes] of focusXrefs) {
-        if (votes < minVotes) continue;
-        ctx.globalAlpha = link ? 0.18 : Math.min(1, 0.35 + Math.log10(Math.max(1, votes)) * 0.35);
-        ctx.lineWidth = votes >= 20 ? 1.6 : 1;
-        ctx.shadowBlur = C.glow(votes >= 20 ? 8 : 0);
+      // The selected verse's connections are the subject: each in the rainbow
+      // color of its reach (as on the verse page's strip), with a glow and a dot
+      // where it lands. With one of them picked, the rest step back.
+      const shown = focusXrefs.filter(([, , votes]) => votes >= minVotes);
+      // Longest first, so the short ones stay readable on top.
+      shown.sort((p, q) => Math.abs(q[0] - focusVerse) - Math.abs(p[0] - focusVerse));
+      for (const [to, , votes] of shown) {
+        const s = Math.sqrt(Math.abs(to - focusVerse) / total);
+        ctx.strokeStyle = C.span(s);
+        ctx.shadowColor = C.span(s);
+        ctx.globalAlpha = link ? 0.3 : 1;
+        ctx.lineWidth = link ? 1.2 : votes >= 20 ? 2.4 : 1.9;
+        ctx.shadowBlur = link ? 0 : C.glow(votes >= 20 ? 12 : 8);
         arc(focusVerse, to);
+        ctx.shadowBlur = 0;
+        dot(ctx, xOf(to), baseY, C.span(s), link ? 2 : 2.8);
       }
-      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
-      dot(ctx, xOf(focusVerse), baseY, `rgb(${C.fg})`);
+      dot(ctx, xOf(focusVerse), baseY, `rgb(${C.fg})`, 3.8);
     }
 
     if (link) {
