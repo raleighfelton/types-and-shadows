@@ -34,11 +34,15 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const title =
     target.kind === "type"
       ? `${target.entry.title} · ${SITE_NAME}`
-      : `${formatRange(canon, target.a, target.a)} and ${formatRange(canon, target.b, target.bEnd)} · ${SITE_NAME}`;
+      : target.kind === "verse"
+        ? `${formatRange(canon, target.a, target.a)} · ${SITE_NAME}`
+        : `${formatRange(canon, target.a, target.a)} and ${formatRange(canon, target.b, target.bEnd)} · ${SITE_NAME}`;
   const description =
     target.kind === "type"
       ? clip(`${target.entry.note} (${target.entry.shadow[0].label} → ${target.entry.anchor.label})`, 200)
-      : "A cross-reference between two passages, on the map of the Bible's connections.";
+      : target.kind === "verse"
+        ? `${formatRange(canon, target.a, target.a)} and the passages it connects to, on the map of the Bible's connections.`
+        : "A cross-reference between two passages, on the map of the Bible's connections.";
   const image = new URLSearchParams(q);
   image.set("f", "wide" satisfies Format);
   const images = [{ url: `/card?${image}`, width: 1200, height: 630, alt: title }];

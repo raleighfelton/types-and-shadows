@@ -1,13 +1,13 @@
 // Share images: a type or a connection, as a card in three sizes.
 // Rendered by next/og (Satori): flexbox only, inline styles, every element
 // with more than one child needs display: flex.
-import { type Canon, type TranslationId, formatRange } from "@/lib/bible";
-import { deepen, spanColor } from "@/lib/palette";
+import { type Canon, type TranslationId, type XRef, formatRange, fromIndex } from "@/lib/bible";
+import { paper, spanColor } from "@/lib/palette";
 import { type PaletteColors, TEXT_MIX } from "@/lib/settingsConfig";
 import { FORMATS, type Format } from "@/lib/shareUrl";
 import { SITE_HOST, SITE_NAME, TAGLINE } from "@/lib/site";
 import { type Entry, THEMES, TIERS } from "@/lib/typology";
-import { type OgArcs, clip, passageText } from "./data";
+import { type OgArcs, clip, passageText, readData } from "./data";
 
 type Side = { label?: string; ref: string; text: string };
 export type CardModel = {
@@ -19,6 +19,10 @@ export type CardModel = {
   right: Side;
   /** The connection to highlight: global verse indexes. */
   arc: [number, number];
+  /** A verse's card: everywhere it reaches (the far end of each connection), most-voted first. */
+  reach?: number[];
+  /** Color of the connection where it isn't the theme color (a cross-reference: the rainbow color of its reach). */
+  arcColor?: (light: boolean) => string;
 };
 
 // Per-format type scale and text budget (characters per passage).
@@ -38,8 +42,8 @@ const mix = (a: string, b: string, t: number) => {
 /** Card colors for a palette and theme (the page's tokens, for Satori). */
 function cardColors(P: PaletteColors, light: boolean, theme: string) {
   const mixes = TEXT_MIX[light ? "light" : "dark"];
-  // Theme colors are tuned for dark; on paper they're deepened like the map's.
-  const ink = light ? deepen(theme, 0.35) : theme;
+  // Theme colors are tuned for dark; on paper they become vivid inks, like the map's.
+  const ink = light ? paper(theme) : theme;
   return {
     muted: mix(P.ink2, P.fg, mixes.muted),
     arc: ink,
@@ -57,9 +61,10 @@ export async function typeCard(e: Entry, canon: Canon, translation: TranslationI
   const s = e.shadow[0];
   // The substance passage that contains the anchor verse.
   const t = e.substance.find((p) => p.from <= e.anchor.from && e.anchor.from <= p.to) ?? e.substance[0];
-  const [left, right] = await Promise.all([text(s.from, s.to), text(t.from, t.to)]);
+  // The link preview shows no passages, so it doesn't load them.
+  const [left, right] = format === "wide" ? ["", ""] : await Promise.all([text(s.from, s.to), text(t.from, t.to)]);
   return {
-    kicker: `${THEMES[e.theme].label} · ${TIERS[e.tier].label}`,
+    kicker: format === "wide" ? THEMES[e.theme].label : `${THEMES[e.theme].label} · ${TIERS[e.tier].label}`,
     color: THEMES[e.theme].color,
     title: e.title,
     left: { label: "Shadow", ref: s.label, text: left },
@@ -80,14 +85,32 @@ export async function pairCard(
 ): Promise<CardModel> {
   const text = (from: number, to: number) =>
     passageText(canon, translation, from, to, origin).then((t) => clip(t, SCALE[format].chars));
-  const [left, right] = await Promise.all([text(a, a), text(b, bEnd)]);
+  const [left, right] = format === "wide" ? ["", ""] : await Promise.all([text(a, a), text(b, bEnd)]);
   return {
+    arcColor: (light: boolean) => spanColor(Math.sqrt(Math.abs(b - a) / canon.total), light),
     kicker: "Cross-reference",
     color: link,
     title: `${formatRange(canon, a, a)} · ${formatRange(canon, b, bEnd)}`,
     left: { ref: formatRange(canon, a, a), text: left },
     right: { ref: formatRange(canon, b, bEnd), text: right },
     arc: [a, b],
+  };
+}
+
+/** One verse and where it reaches (link preview only). */
+export async function verseCard(canon: Canon, a: number, link: string, origin?: string): Promise<CardModel> {
+  const r = fromIndex(canon, a);
+  const xrefs = (await readData<Record<string, XRef[]>>(`xref/${r.book}.json`, origin))[`${r.chapter}.${r.verse}`] ?? [];
+  const none = { ref: "", text: "" };
+  return {
+    kicker: canon.books[r.book].nt ? "New Testament" : "Old Testament",
+    color: link,
+    title: formatRange(canon, a, a),
+    left: none,
+    right: none,
+    arc: [a, a],
+    // Enough to show the shape of its reach without turning into the rainbow again.
+    reach: xrefs.slice(0, 24).map((x) => x[0]),
   };
 }
 
@@ -99,13 +122,21 @@ function ArcBand({
   light,
   highlight,
   color,
+  reach,
+  fg,
 }: {
   arcs: OgArcs;
   width: number;
   height: number;
   light: boolean;
+  /** The connection to pick out, from highlight[0] to highlight[1]. */
   highlight?: [number, number];
+  /** Its color (a type's theme color, or a cross-reference's reach color). */
   color?: string;
+  /** A verse's card: every place it reaches from highlight[0], each in the rainbow color of its reach. */
+  reach?: number[];
+  /** Foreground color, for the dot where the connection starts. */
+  fg?: string;
 }) {
   const hs = Math.min(1, height / (width / 2));
   const x = (i: number) => ((i + 0.5) / arcs.total) * width;
@@ -114,13 +145,29 @@ function ArcBand({
     const r = Math.max(0.5, (x2 - x1) / 2);
     return `M ${x1} ${height} A ${r} ${r * hs} 0 0 1 ${x2} ${height}`;
   };
-  const alpha = highlight ? (light ? 0.22 : 0.18) : light ? 0.4 : 0.32;
+  // Behind a picked-out connection the rainbow is only a ghost of itself.
+  const alpha = highlight ? (light ? 0.13 : 0.1) : light ? 0.4 : 0.32;
+  // Connections are drawn one way in every share image: a solid line, a dot
+  // where it lands, and a larger dot in the foreground color where it starts.
+  // Sized to the band, so it reads the same in each format.
+  const k = width / 640;
+  const from = highlight?.[0] ?? 0;
+  const lines = !highlight
+    ? []
+    : reach
+      ? // Longest first, so the short ones stay readable on top.
+        [...reach].sort((p, q) => Math.abs(q - from) - Math.abs(p - from)).map((to) => ({ to, c: spanColor(Math.sqrt(Math.abs(to - from) / arcs.total), light) }))
+      : [{ to: highlight[1], c: color ?? fg ?? "#fff" }];
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {arcs.arcs.map(([a, b], i) => (
         <path key={i} d={d(a, b)} fill="none" stroke={spanColor(Math.sqrt(Math.abs(b - a) / arcs.total), light, alpha)} strokeWidth={1.2} />
       ))}
-      {highlight && <path d={d(...highlight)} fill="none" stroke={color} strokeWidth={Math.max(4, width / 160)} strokeLinecap="round" />}
+      {lines.map(({ to, c }, i) => [
+        <path key={`l${i}`} d={d(from, to)} fill="none" stroke={c} strokeWidth={4 * k} strokeLinecap="round" />,
+        <circle key={`d${i}`} cx={x(to)} cy={height - 1} r={5 * k} fill={c} />,
+      ])}
+      {highlight && <circle cx={x(from)} cy={height - 1} r={8 * k} fill={fg ?? color} />}
     </svg>
   );
 }
@@ -138,11 +185,12 @@ export function Card({
   light: boolean;
   arcs: OgArcs;
 }) {
+  if (format === "wide") return <LinkCard model={model} colors={P} light={light} arcs={arcs} />;
   const S = SCALE[format];
   const { width, height } = FORMATS[format];
   const K = cardColors(P, light, model.color);
-  // Wide: passages side by side; square and story stack them.
-  const stacked = format !== "wide";
+  // Square and story stack the passages (the wide link preview is LinkCard, above).
+  const stacked: boolean = true;
   /** Vertical rhythm between passages and above the footer. */
   const rhythm = S.small * 0.9;
 
@@ -162,7 +210,7 @@ export function Card({
 
   return (
     <div style={{ width, height, display: "flex", flexDirection: "column", background: P.ink, padding: S.pad, fontFamily: "Garamond" }}>
-      <ArcBand arcs={arcs} width={width - S.pad * 2} height={S.band} light={light} highlight={model.arc} color={K.arc} />
+      <ArcBand arcs={arcs} width={width - S.pad * 2} height={S.band} light={light} highlight={model.arc} color={model.arcColor?.(light) ?? K.arc} reach={model.reach} fg={P.fg} />
       <div style={{ height: 2, background: K.rule, marginBottom: S.pad * 0.55 }} />
       <div style={{ fontSize: S.small, letterSpacing: 3, color: K.accent, fontWeight: 600 }}>{model.kicker.toUpperCase()}</div>
       <div style={{ fontFamily: "Cormorant", fontSize: S.title, lineHeight: 1.05, color: P.fg, marginTop: S.small * 0.5, marginBottom: S.pad * 0.5 }}>
@@ -195,6 +243,31 @@ export function Card({
       >
         <div style={{ fontFamily: "Cormorant", fontStyle: "italic", fontSize: S.label * 0.9, color: P.fg }}>{SITE_NAME}</div>
         <div style={{ letterSpacing: 2 }}>{SITE_HOST.toUpperCase()}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The link preview (wide): shown small, in a message bubble or a feed, so it
+ * carries no passages. The rainbow in its own proportions (a half circle, not
+ * stretched across the card) with the connection picked out, then what kind
+ * of connection it is, its name, and whose it is.
+ */
+function LinkCard({ model, colors: P, light, arcs }: { model: CardModel; colors: PaletteColors; light: boolean; arcs: OgArcs }) {
+  const { width, height } = FORMATS.wide;
+  const K = cardColors(P, light, model.color);
+  const band = 640; // the rainbow's width; its height is half of that
+  // Long names step down a size instead of crowding the card.
+  const title = Math.round(Math.min(92, Math.max(58, 2300 / Math.max(12, model.title.length))));
+  return (
+    <div style={{ width, height, display: "flex", flexDirection: "column", alignItems: "center", background: P.ink, paddingTop: 42 }}>
+      <ArcBand arcs={arcs} width={band} height={band / 2} light={light} highlight={model.arc} color={model.arcColor?.(light) ?? K.arc} reach={model.reach} fg={P.fg} />
+      <div style={{ width: band, height: 2, background: K.rule }} />
+      <div style={{ fontFamily: "Garamond", fontWeight: 600, fontSize: 27, letterSpacing: 4.5, color: K.accent, marginTop: 32 }}>{model.kicker.toUpperCase()}</div>
+      <div style={{ fontFamily: "Cormorant", fontSize: title, lineHeight: 1.04, color: P.fg, marginTop: 6, padding: "0 60px", textAlign: "center" }}>{model.title}</div>
+      <div style={{ display: "flex", fontFamily: "Cormorant", fontStyle: "italic", fontSize: 38, color: P.fg, opacity: 0.85, marginTop: "auto", marginBottom: 30 }}>
+        Types <span style={{ color: P.accent, fontStyle: "normal", margin: "0 10px" }}>&amp;</span> Shadows
       </div>
     </div>
   );

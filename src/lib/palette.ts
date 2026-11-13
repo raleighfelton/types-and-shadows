@@ -37,8 +37,14 @@ export function spanColor(s: number, light: boolean, alpha = 1) {
   return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;
 }
 
-/** Deepen a #rrggbb color for paper: lower lightness, keep (and lift) saturation. */
-export function deepen(hex: string, amount: number) {
+/**
+ * A #rrggbb theme color as ink on paper. The theme colors are tuned to glow on
+ * a dark ground; on a light one they need to be darker to read, but darkening
+ * alone leaves them muddy. So this keeps the hue, raises the saturation, and
+ * sets a mid lightness that keeps each color's place (pale ones stay the
+ * lighter ones). Yellows sit a little lower, since they carry the least ink.
+ */
+export function paper(hex: string) {
   const n = parseInt(hex.slice(1), 16);
   let [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((v) => v / 255);
   const max = Math.max(r, g, b);
@@ -50,9 +56,11 @@ export function deepen(hex: string, amount: number) {
   if (d) {
     sat = d / (1 - Math.abs(2 * l - 1));
     h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    if (h < 0) h += 6;
   }
-  const L = l * (1 - amount);
-  const S = Math.min(1, sat * 1.25);
+  const yellow = Math.max(0, 1 - Math.abs(h * 60 - 60) / 40);
+  const L = (0.4 + (l - 0.5) * 0.45) * (1 - 0.08 * yellow);
+  const S = Math.min(0.92, sat * 1.45 + 0.22);
   const C = (1 - Math.abs(2 * L - 1)) * S;
   const X = C * (1 - Math.abs((h % 2) - 1));
   const m = L - C / 2;
@@ -88,8 +96,8 @@ export function colorsFor(theme: Theme, palette: PaletteId) {
     /** Canvas font families, resolved once per theme. */
     serif: cssFont("--font-garamond"),
     display: cssFont("--font-cormorant"),
-    /** Theme colors are tuned for dark; deepen them for paper. */
-    ink: (hex: string) => (light ? deepen(hex, 0.35) : hex),
+    /** Theme colors are tuned for dark; on paper they become vivid inks. */
+    ink: (hex: string) => (light ? paper(hex) : hex),
     /** s = sqrt(distance / total), 0..1 */
     span: (s: number, alpha = 1) => spanColor(s, light, alpha),
   };

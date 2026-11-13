@@ -196,25 +196,21 @@ export default function ArcCanvas(props: Props) {
     }
 
     if (focusVerse !== null && focusXrefs) {
-      // The selected verse's connections are the subject: each in the rainbow
-      // color of its reach (as on the verse page's strip), with a glow and a dot
-      // where it lands. With one of them picked, the rest step back.
-      const shown = focusXrefs.filter(([, , votes]) => votes >= minVotes);
-      // Longest first, so the short ones stay readable on top.
-      shown.sort((p, q) => Math.abs(q[0] - focusVerse) - Math.abs(p[0] - focusVerse));
-      for (const [to, , votes] of shown) {
-        const s = Math.sqrt(Math.abs(to - focusVerse) / total);
-        ctx.strokeStyle = C.span(s);
-        ctx.shadowColor = C.span(s);
+      // The selected verse's connections, drawn as on its link preview and its
+      // reach strip: every one of them (whatever the votes filter says), a solid
+      // line in the rainbow color of its reach, with a dot where it lands.
+      // With one of them picked, the rest step back.
+      const shown = [...focusXrefs].sort((p, q) => Math.abs(q[0] - focusVerse) - Math.abs(p[0] - focusVerse)); // longest first
+      for (const [to] of shown) {
+        const color = C.span(Math.sqrt(Math.abs(to - focusVerse) / total));
+        ctx.strokeStyle = color;
         ctx.globalAlpha = link ? 0.3 : 1;
-        ctx.lineWidth = link ? 1.2 : votes >= 20 ? 2.4 : 1.9;
-        ctx.shadowBlur = link ? 0 : C.glow(votes >= 20 ? 12 : 8);
+        ctx.lineWidth = link ? 1.3 : 2.6;
         arc(focusVerse, to);
-        ctx.shadowBlur = 0;
-        dot(ctx, xOf(to), baseY, C.span(s), link ? 2 : 2.8);
+        dot(ctx, xOf(to), baseY, color, link ? 2.2 : 3.6);
       }
       ctx.globalAlpha = 1;
-      dot(ctx, xOf(focusVerse), baseY, `rgb(${C.fg})`, 3.8);
+      dot(ctx, xOf(focusVerse), baseY, `rgb(${C.fg})`, 5);
     }
 
     if (link) {
