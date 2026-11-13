@@ -145,7 +145,8 @@ function ArcBand({
     const r = Math.max(0.5, (x2 - x1) / 2);
     return `M ${x1} ${height} A ${r} ${r * hs} 0 0 1 ${x2} ${height}`;
   };
-  const alpha = highlight ? (light ? 0.22 : 0.18) : light ? 0.4 : 0.32;
+  // Behind a picked-out connection the rainbow is only a ghost of itself.
+  const alpha = highlight ? (light ? 0.13 : 0.1) : light ? 0.4 : 0.32;
   // Connections are drawn one way in every share image: a solid line, a dot
   // where it lands, and a larger dot in the foreground color where it starts.
   // Sized to the band, so it reads the same in each format.
