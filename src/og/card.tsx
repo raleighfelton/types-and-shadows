@@ -19,6 +19,10 @@ export type CardModel = {
   right: Side;
   /** The connection to highlight: global verse indexes. */
   arc: [number, number];
+  /** The books at each end of the connection, for the link preview. */
+  ends: [string, string];
+  /** Color of the connection where it isn't the theme color (a cross-reference: the rainbow color of its reach). */
+  arcColor?: (light: boolean) => string;
 };
 
 // Per-format type scale and text budget (characters per passage).
@@ -51,14 +55,18 @@ function cardColors(P: PaletteColors, light: boolean, theme: string) {
   };
 }
 
+const bookName = (canon: Canon, idx: number) => canon.books[canon.verseBook[idx]].name;
+
 export async function typeCard(e: Entry, canon: Canon, translation: TranslationId, format: Format, origin?: string): Promise<CardModel> {
   const text = (from: number, to: number) =>
     passageText(canon, translation, from, to, origin).then((t) => clip(t, SCALE[format].chars));
   const s = e.shadow[0];
   // The substance passage that contains the anchor verse.
   const t = e.substance.find((p) => p.from <= e.anchor.from && e.anchor.from <= p.to) ?? e.substance[0];
-  const [left, right] = await Promise.all([text(s.from, s.to), text(t.from, t.to)]);
+  // The link preview shows no passages, so it doesn't load them.
+  const [left, right] = format === "wide" ? ["", ""] : await Promise.all([text(s.from, s.to), text(t.from, t.to)]);
   return {
+    ends: [bookName(canon, s.from), bookName(canon, e.anchor.from)],
     kicker: `${THEMES[e.theme].label} · ${TIERS[e.tier].label}`,
     color: THEMES[e.theme].color,
     title: e.title,
@@ -80,8 +88,10 @@ export async function pairCard(
 ): Promise<CardModel> {
   const text = (from: number, to: number) =>
     passageText(canon, translation, from, to, origin).then((t) => clip(t, SCALE[format].chars));
-  const [left, right] = await Promise.all([text(a, a), text(b, bEnd)]);
+  const [left, right] = format === "wide" ? ["", ""] : await Promise.all([text(a, a), text(b, bEnd)]);
   return {
+    ends: [bookName(canon, a), bookName(canon, b)],
+    arcColor: (light: boolean) => spanColor(Math.sqrt(Math.abs(b - a) / canon.total), light),
     kicker: "Cross-reference",
     color: link,
     title: `${formatRange(canon, a, a)} · ${formatRange(canon, b, bEnd)}`,
@@ -138,11 +148,12 @@ export function Card({
   light: boolean;
   arcs: OgArcs;
 }) {
+  if (format === "wide") return <LinkCard model={model} colors={P} light={light} total={arcs.total} />;
   const S = SCALE[format];
   const { width, height } = FORMATS[format];
   const K = cardColors(P, light, model.color);
-  // Wide: passages side by side; square and story stack them.
-  const stacked = format !== "wide";
+  // Square and story stack the passages (the wide link preview is LinkCard, above).
+  const stacked: boolean = true;
   /** Vertical rhythm between passages and above the footer. */
   const rhythm = S.small * 0.9;
 
@@ -195,6 +206,71 @@ export function Card({
       >
         <div style={{ fontFamily: "Cormorant", fontStyle: "italic", fontSize: S.label * 0.9, color: P.fg }}>{SITE_NAME}</div>
         <div style={{ letterSpacing: 2 }}>{SITE_HOST.toUpperCase()}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The link preview (wide): shown small, in a message bubble or a feed, so it
+ * says three things and nothing else. The connection as one arc across the
+ * Bible, its name, and whose it is.
+ */
+function LinkCard({ model, colors: P, light, total }: { model: CardModel; colors: PaletteColors; light: boolean; total: number }) {
+  const { width, height } = FORMATS.wide;
+  const K = cardColors(P, light, model.color);
+  const color = model.arcColor?.(light) ?? K.arc;
+  const pad = 96;
+  const base = 286; // the line of the Bible, Genesis to Revelation
+  const x = (i: number) => pad + ((i + 0.5) / total) * (width - pad * 2);
+  // A short reach still stands up as a small arch (its ends drawn a little
+  // apart, around the true midpoint); a long one stays inside the card.
+  const [t1, t2] = [x(Math.min(...model.arc)), x(Math.max(...model.arc))];
+  const rx = Math.max(32, (t2 - t1) / 2);
+  const mid = Math.min(Math.max((t1 + t2) / 2, pad + rx), width - pad - rx);
+  const [x1, x2] = [mid - rx, mid + rx];
+  const ry = Math.min(232, Math.max(72, rx * 0.62));
+  const d = `M ${x1} ${base} A ${rx} ${ry} 0 0 1 ${x2} ${base}`;
+
+  // Book names under each end, kept apart and inside the card.
+  const size = 30;
+  const names = (model.arc[0] <= model.arc[1] ? model.ends : [model.ends[1], model.ends[0]]).map((n) => n.toUpperCase());
+  const w = names.map((n) => n.length * size * 0.74 + 8);
+  let [c1, c2] = [x1, x2];
+  const gap = (w[0] + w[1]) / 2 + 28;
+  if (c2 - c1 < gap) [c1, c2] = [(x1 + x2 - gap) / 2, (x1 + x2 + gap) / 2];
+  const lo = (i: number) => 40 + w[i] / 2;
+  const hi = (i: number) => width - 40 - w[i] / 2;
+  c1 = Math.min(Math.max(c1, lo(0)), hi(0));
+  c2 = Math.min(Math.max(c2, lo(1)), hi(1));
+  if (c2 - c1 < gap) {
+    if (c1 === lo(0)) c2 = c1 + gap;
+    else c1 = c2 - gap;
+  }
+  const same = names[0] === names[1];
+  const label = (text: string, c: number, wd: number) => (
+    <div style={{ position: "absolute", left: c - wd / 2, top: base + 26, width: wd, display: "flex", justifyContent: "center", fontFamily: "Garamond", fontWeight: 600, fontSize: size, letterSpacing: 4, color: K.muted }}>
+      {text}
+    </div>
+  );
+  // Long names step down a size instead of crowding the card.
+  const title = Math.round(Math.min(104, Math.max(62, 2300 / Math.max(12, model.title.length))));
+
+  return (
+    <div style={{ width, height, display: "flex", flexDirection: "column", alignItems: "center", background: P.ink, position: "relative" }}>
+      <svg width={width} height={base + 20} viewBox={`0 0 ${width} ${base + 20}`} style={{ position: "absolute", left: 0, top: 0 }}>
+        <path d={`M ${pad} ${base} L ${width - pad} ${base}`} stroke={K.rule} strokeWidth={2.5} fill="none" />
+        <path d={d} fill="none" stroke={color} strokeOpacity={light ? 0.14 : 0.2} strokeWidth={34} strokeLinecap="round" />
+        <path d={d} fill="none" stroke={color} strokeWidth={11} strokeLinecap="round" />
+        <circle cx={x1} cy={base} r={15} fill={color} stroke={P.ink} strokeWidth={5} />
+        <circle cx={x2} cy={base} r={15} fill={color} stroke={P.ink} strokeWidth={5} />
+      </svg>
+      {same ? label(names[0], Math.min(Math.max((x1 + x2) / 2, lo(0)), hi(0)), w[0]) : [label(names[0], c1, w[0]), label(names[1], c2, w[1])]}
+      <div style={{ display: "flex", flex: 1, alignItems: "center", marginTop: base + 74, padding: "0 70px", textAlign: "center", fontFamily: "Cormorant", fontSize: title, lineHeight: 1.04, color: P.fg }}>
+        {model.title}
+      </div>
+      <div style={{ display: "flex", fontFamily: "Cormorant", fontStyle: "italic", fontSize: 46, color: P.fg, opacity: 0.9, marginBottom: 44 }}>
+        Types <span style={{ color: P.accent, fontStyle: "normal", margin: "0 12px" }}>&amp;</span> Shadows
       </div>
     </div>
   );
