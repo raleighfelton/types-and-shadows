@@ -8,7 +8,9 @@ import { isTranslation } from "./data";
 
 export type ShareTarget =
   | { kind: "type"; entry: Entry }
-  | { kind: "pair"; a: number; b: number; bEnd: number };
+  | { kind: "pair"; a: number; b: number; bEnd: number }
+  /** One verse and everywhere it reaches: /s?a=Exod.15.26 */
+  | { kind: "verse"; a: number };
 
 export function parseTarget(canon: Canon, q: URLSearchParams): ShareTarget | null {
   const type = q.get("type");
@@ -18,7 +20,8 @@ export function parseTarget(canon: Canon, q: URLSearchParams): ShareTarget | nul
   }
   const a = parseRefId(canon, q.get("a") ?? "");
   const b = parseRefId(canon, q.get("b") ?? "");
-  if (a === null || b === null) return null;
+  if (a === null) return null;
+  if (b === null) return { kind: "verse", a };
   const be = parseRefId(canon, q.get("be") ?? "");
   return { kind: "pair", a, b, bEnd: be !== null && be >= b ? be : b };
 }

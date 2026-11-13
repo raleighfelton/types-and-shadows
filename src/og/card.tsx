@@ -1,13 +1,13 @@
 // Share images: a type or a connection, as a card in three sizes.
 // Rendered by next/og (Satori): flexbox only, inline styles, every element
 // with more than one child needs display: flex.
-import { type Canon, type TranslationId, formatRange } from "@/lib/bible";
+import { type Canon, type TranslationId, type XRef, formatRange, fromIndex } from "@/lib/bible";
 import { deepen, spanColor } from "@/lib/palette";
 import { type PaletteColors, TEXT_MIX } from "@/lib/settingsConfig";
 import { FORMATS, type Format } from "@/lib/shareUrl";
 import { SITE_HOST, SITE_NAME, TAGLINE } from "@/lib/site";
 import { type Entry, THEMES, TIERS } from "@/lib/typology";
-import { type OgArcs, clip, passageText } from "./data";
+import { type OgArcs, clip, passageText, readData } from "./data";
 
 type Side = { label?: string; ref: string; text: string };
 export type CardModel = {
@@ -19,6 +19,8 @@ export type CardModel = {
   right: Side;
   /** The connection to highlight: global verse indexes. */
   arc: [number, number];
+  /** A verse's card: everywhere it reaches (the far end of each connection), most-voted first. */
+  reach?: number[];
   /** Color of the connection where it isn't the theme color (a cross-reference: the rainbow color of its reach). */
   arcColor?: (light: boolean) => string;
 };
@@ -95,6 +97,23 @@ export async function pairCard(
   };
 }
 
+/** One verse and where it reaches (link preview only). */
+export async function verseCard(canon: Canon, a: number, link: string, origin?: string): Promise<CardModel> {
+  const r = fromIndex(canon, a);
+  const xrefs = (await readData<Record<string, XRef[]>>(`xref/${r.book}.json`, origin))[`${r.chapter}.${r.verse}`] ?? [];
+  const none = { ref: "", text: "" };
+  return {
+    kicker: canon.books[r.book].nt ? "New Testament" : "Old Testament",
+    color: link,
+    title: formatRange(canon, a, a),
+    left: none,
+    right: none,
+    arc: [a, a],
+    // Enough to show the shape of its reach without turning into the rainbow again.
+    reach: xrefs.slice(0, 24).map((x) => x[0]),
+  };
+}
+
 /** The rainbow of arcs, with one connection highlighted. */
 function ArcBand({
   arcs,
@@ -105,6 +124,8 @@ function ArcBand({
   color,
   weight,
   dots,
+  reach,
+  fg,
 }: {
   arcs: OgArcs;
   width: number;
@@ -115,6 +136,9 @@ function ArcBand({
   /** Stroke width of the highlighted connection; with `dots`, a dot marks each end. */
   weight?: number;
   dots?: boolean;
+  /** A verse's connections, each in the rainbow color of its reach, from the verse (highlight[0]). */
+  reach?: number[];
+  fg?: string;
 }) {
   const hs = Math.min(1, height / (width / 2));
   const x = (i: number) => ((i + 0.5) / arcs.total) * width;
@@ -129,8 +153,21 @@ function ArcBand({
       {arcs.arcs.map(([a, b], i) => (
         <path key={i} d={d(a, b)} fill="none" stroke={spanColor(Math.sqrt(Math.abs(b - a) / arcs.total), light, alpha)} strokeWidth={1.2} />
       ))}
-      {highlight && <path d={d(...highlight)} fill="none" stroke={color} strokeWidth={weight ?? Math.max(4, width / 160)} strokeLinecap="round" />}
-      {highlight && dots && highlight.map((v, i) => <circle key={`dot${i}`} cx={x(v)} cy={height - 1} r={(weight ?? 4) * 1.15} fill={color} />)}
+      {highlight && !reach && <path d={d(...highlight)} fill="none" stroke={color} strokeWidth={weight ?? Math.max(4, width / 160)} strokeLinecap="round" />}
+      {highlight && !reach && dots && highlight.map((v, i) => <circle key={`dot${i}`} cx={x(v)} cy={height - 1} r={(weight ?? 4) * 1.15} fill={color} />)}
+      {highlight &&
+        reach &&
+        // Longest first, so the short ones stay readable on top.
+        [...reach]
+          .sort((p, q) => Math.abs(q - highlight[0]) - Math.abs(p - highlight[0]))
+          .map((t, i) => {
+            const c = spanColor(Math.sqrt(Math.abs(t - highlight[0]) / arcs.total), light);
+            return [
+              <path key={`r${i}`} d={d(highlight[0], t)} fill="none" stroke={c} strokeWidth={4} strokeLinecap="round" />,
+              <circle key={`rd${i}`} cx={x(t)} cy={height - 1} r={5} fill={c} />,
+            ];
+          })}
+      {highlight && reach && <circle cx={x(highlight[0])} cy={height - 1} r={8} fill={fg} />}
     </svg>
   );
 }
@@ -225,7 +262,7 @@ function LinkCard({ model, colors: P, light, arcs }: { model: CardModel; colors:
   const title = Math.round(Math.min(92, Math.max(58, 2300 / Math.max(12, model.title.length))));
   return (
     <div style={{ width, height, display: "flex", flexDirection: "column", alignItems: "center", background: P.ink, paddingTop: 42 }}>
-      <ArcBand arcs={arcs} width={band} height={band / 2} light={light} highlight={model.arc} color={model.arcColor?.(light) ?? K.arc} weight={7} dots />
+      <ArcBand arcs={arcs} width={band} height={band / 2} light={light} highlight={model.arc} color={model.arcColor?.(light) ?? K.arc} weight={7} dots reach={model.reach} fg={P.fg} />
       <div style={{ width: band, height: 2, background: K.rule }} />
       <div style={{ fontFamily: "Garamond", fontWeight: 600, fontSize: 27, letterSpacing: 4.5, color: K.accent, marginTop: 32 }}>{model.kicker.toUpperCase()}</div>
       <div style={{ fontFamily: "Cormorant", fontSize: title, lineHeight: 1.04, color: P.fg, marginTop: 6, padding: "0 60px", textAlign: "center" }}>{model.title}</div>

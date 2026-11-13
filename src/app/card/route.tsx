@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { FORMATS } from "@/lib/shareUrl";
-import { Card, pairCard, typeCard } from "@/og/card";
+import { Card, pairCard, typeCard, verseCard } from "@/og/card";
 import { loadCanonFrom, loadFonts, loadOgArcs } from "@/og/data";
 import { parseStyle, parseTarget } from "@/og/share";
 import { PALETTE_COLORS } from "@/lib/settingsConfig";
@@ -13,12 +13,17 @@ export async function GET(req: Request) {
   const [canon, arcs, fonts] = await Promise.all([loadCanonFrom(origin), loadOgArcs(origin), loadFonts()]);
   const target = parseTarget(canon, q);
   if (!target) return new Response("Unknown type or reference", { status: 404 });
-  const { translation, format, light, palette } = parseStyle(q);
+  const style = parseStyle(q);
+  const { translation, light, palette } = style;
+  // A verse has only the link preview (no passages to set in the larger sizes).
+  const format = target.kind === "verse" ? "wide" : style.format;
   const colors = PALETTE_COLORS[palette][light ? "light" : "dark"];
   const model =
     target.kind === "type"
       ? await typeCard(target.entry, canon, translation, format, origin)
-      : await pairCard(canon, translation, format, target.a, target.b, target.bEnd, colors.link, origin);
+      : target.kind === "verse"
+        ? await verseCard(canon, target.a, colors.link, origin)
+        : await pairCard(canon, translation, format, target.a, target.b, target.bEnd, colors.link, origin);
   const { width, height } = FORMATS[format];
   return new ImageResponse(<Card model={model} format={format} colors={colors} light={light} arcs={arcs} />, {
     width,
