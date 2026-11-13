@@ -2,7 +2,7 @@
 // Rendered by next/og (Satori): flexbox only, inline styles, every element
 // with more than one child needs display: flex.
 import { type Canon, type TranslationId, type XRef, formatRange, fromIndex } from "@/lib/bible";
-import { deepen, spanColor } from "@/lib/palette";
+import { paper, spanColor } from "@/lib/palette";
 import { type PaletteColors, TEXT_MIX } from "@/lib/settingsConfig";
 import { FORMATS, type Format } from "@/lib/shareUrl";
 import { SITE_HOST, SITE_NAME, TAGLINE } from "@/lib/site";
@@ -42,8 +42,8 @@ const mix = (a: string, b: string, t: number) => {
 /** Card colors for a palette and theme (the page's tokens, for Satori). */
 function cardColors(P: PaletteColors, light: boolean, theme: string) {
   const mixes = TEXT_MIX[light ? "light" : "dark"];
-  // Theme colors are tuned for dark; on paper they're deepened like the map's.
-  const ink = light ? deepen(theme, 0.35) : theme;
+  // Theme colors are tuned for dark; on paper they become vivid inks, like the map's.
+  const ink = light ? paper(theme) : theme;
   return {
     muted: mix(P.ink2, P.fg, mixes.muted),
     arc: ink,
