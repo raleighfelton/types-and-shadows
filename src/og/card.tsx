@@ -122,8 +122,6 @@ function ArcBand({
   light,
   highlight,
   color,
-  weight,
-  dots,
   reach,
   fg,
 }: {
@@ -131,13 +129,13 @@ function ArcBand({
   width: number;
   height: number;
   light: boolean;
+  /** The connection to pick out, from highlight[0] to highlight[1]. */
   highlight?: [number, number];
+  /** Its color (a type's theme color, or a cross-reference's reach color). */
   color?: string;
-  /** Stroke width of the highlighted connection; with `dots`, a dot marks each end. */
-  weight?: number;
-  dots?: boolean;
-  /** A verse's connections, each in the rainbow color of its reach, from the verse (highlight[0]). */
+  /** A verse's card: every place it reaches from highlight[0], each in the rainbow color of its reach. */
   reach?: number[];
+  /** Foreground color, for the dot where the connection starts. */
   fg?: string;
 }) {
   const hs = Math.min(1, height / (width / 2));
@@ -148,26 +146,27 @@ function ArcBand({
     return `M ${x1} ${height} A ${r} ${r * hs} 0 0 1 ${x2} ${height}`;
   };
   const alpha = highlight ? (light ? 0.22 : 0.18) : light ? 0.4 : 0.32;
+  // Connections are drawn one way in every share image: a solid line, a dot
+  // where it lands, and a larger dot in the foreground color where it starts.
+  // Sized to the band, so it reads the same in each format.
+  const k = width / 640;
+  const from = highlight?.[0] ?? 0;
+  const lines = !highlight
+    ? []
+    : reach
+      ? // Longest first, so the short ones stay readable on top.
+        [...reach].sort((p, q) => Math.abs(q - from) - Math.abs(p - from)).map((to) => ({ to, c: spanColor(Math.sqrt(Math.abs(to - from) / arcs.total), light) }))
+      : [{ to: highlight[1], c: color ?? fg ?? "#fff" }];
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       {arcs.arcs.map(([a, b], i) => (
         <path key={i} d={d(a, b)} fill="none" stroke={spanColor(Math.sqrt(Math.abs(b - a) / arcs.total), light, alpha)} strokeWidth={1.2} />
       ))}
-      {highlight && !reach && <path d={d(...highlight)} fill="none" stroke={color} strokeWidth={weight ?? Math.max(4, width / 160)} strokeLinecap="round" />}
-      {highlight && !reach && dots && highlight.map((v, i) => <circle key={`dot${i}`} cx={x(v)} cy={height - 1} r={(weight ?? 4) * 1.15} fill={color} />)}
-      {highlight &&
-        reach &&
-        // Longest first, so the short ones stay readable on top.
-        [...reach]
-          .sort((p, q) => Math.abs(q - highlight[0]) - Math.abs(p - highlight[0]))
-          .map((t, i) => {
-            const c = spanColor(Math.sqrt(Math.abs(t - highlight[0]) / arcs.total), light);
-            return [
-              <path key={`r${i}`} d={d(highlight[0], t)} fill="none" stroke={c} strokeWidth={4} strokeLinecap="round" />,
-              <circle key={`rd${i}`} cx={x(t)} cy={height - 1} r={5} fill={c} />,
-            ];
-          })}
-      {highlight && reach && <circle cx={x(highlight[0])} cy={height - 1} r={8} fill={fg} />}
+      {lines.map(({ to, c }, i) => [
+        <path key={`l${i}`} d={d(from, to)} fill="none" stroke={c} strokeWidth={4 * k} strokeLinecap="round" />,
+        <circle key={`d${i}`} cx={x(to)} cy={height - 1} r={5 * k} fill={c} />,
+      ])}
+      {highlight && <circle cx={x(from)} cy={height - 1} r={8 * k} fill={fg ?? color} />}
     </svg>
   );
 }
@@ -210,7 +209,7 @@ export function Card({
 
   return (
     <div style={{ width, height, display: "flex", flexDirection: "column", background: P.ink, padding: S.pad, fontFamily: "Garamond" }}>
-      <ArcBand arcs={arcs} width={width - S.pad * 2} height={S.band} light={light} highlight={model.arc} color={K.arc} />
+      <ArcBand arcs={arcs} width={width - S.pad * 2} height={S.band} light={light} highlight={model.arc} color={model.arcColor?.(light) ?? K.arc} reach={model.reach} fg={P.fg} />
       <div style={{ height: 2, background: K.rule, marginBottom: S.pad * 0.55 }} />
       <div style={{ fontSize: S.small, letterSpacing: 3, color: K.accent, fontWeight: 600 }}>{model.kicker.toUpperCase()}</div>
       <div style={{ fontFamily: "Cormorant", fontSize: S.title, lineHeight: 1.05, color: P.fg, marginTop: S.small * 0.5, marginBottom: S.pad * 0.5 }}>
@@ -262,7 +261,7 @@ function LinkCard({ model, colors: P, light, arcs }: { model: CardModel; colors:
   const title = Math.round(Math.min(92, Math.max(58, 2300 / Math.max(12, model.title.length))));
   return (
     <div style={{ width, height, display: "flex", flexDirection: "column", alignItems: "center", background: P.ink, paddingTop: 42 }}>
-      <ArcBand arcs={arcs} width={band} height={band / 2} light={light} highlight={model.arc} color={model.arcColor?.(light) ?? K.arc} weight={7} dots reach={model.reach} fg={P.fg} />
+      <ArcBand arcs={arcs} width={band} height={band / 2} light={light} highlight={model.arc} color={model.arcColor?.(light) ?? K.arc} reach={model.reach} fg={P.fg} />
       <div style={{ width: band, height: 2, background: K.rule }} />
       <div style={{ fontFamily: "Garamond", fontWeight: 600, fontSize: 27, letterSpacing: 4.5, color: K.accent, marginTop: 32 }}>{model.kicker.toUpperCase()}</div>
       <div style={{ fontFamily: "Cormorant", fontSize: title, lineHeight: 1.04, color: P.fg, marginTop: 6, padding: "0 60px", textAlign: "center" }}>{model.title}</div>
