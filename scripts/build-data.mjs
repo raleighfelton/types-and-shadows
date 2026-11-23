@@ -14,7 +14,11 @@ const FINAL = join(ROOT, "public", "data");
 // so an interrupted run never leaves a partial dataset behind.
 const OUT = `${FINAL}.partial`;
 
+// Bundled with the app and the site: strict KJV versification.
 const TRANSLATIONS = ["BSB", "KJV", "ASV", "YLT", "Darby"];
+// Offered as downloads: aligned to the KJV skeleton (an extra verse folds into
+// the one before it; a missing one is left empty).
+const DOWNLOADS = ["NHEB", "LEB", "Geneva1599", "Webster", "Rotherham", "BBE"];
 const TEXT_URL = (t) =>
   `https://raw.githubusercontent.com/scrollmapper/bible_databases/master/formats/json/${t}.json`;
 const XREF_URL = "https://a.openbible.info/data/cross-references.zip";
@@ -56,7 +60,7 @@ mkdirSync(OUT, { recursive: true });
 
 // ---- Texts -------------------------------------------------------------
 const texts = {};
-for (const t of TRANSLATIONS) {
+for (const t of [...TRANSLATIONS, ...DOWNLOADS]) {
   const file = join(CACHE, `${t}.json`);
   await download(TEXT_URL(t), file);
   texts[t] = JSON.parse(readFileSync(file, "utf8")).books;
@@ -95,19 +99,32 @@ function verseIndex(ref) {
   return idx + Number(v) - 1;
 }
 
-for (const t of TRANSLATIONS) {
+/// A chapter's verses fitted to the skeleton's count.
+function fit(verses, want, strict, where) {
+  const out = verses.map((v) => v.text.trim());
+  if (out.length === want) return out;
+  if (strict) throw new Error(`${where}: verse count mismatch`);
+  while (out.length > want) out[out.length - 2] = `${out[out.length - 2]} ${out.pop()}`.trim();
+  while (out.length < want) out.push("");
+  return out;
+}
+
+const packs = {};
+for (const t of [...TRANSLATIONS, ...DOWNLOADS]) {
+  const strict = TRANSLATIONS.includes(t);
   const dir = join(OUT, "text", t);
   mkdirSync(dir, { recursive: true });
-  texts[t].forEach((b, i) => {
-    const chapters = b.chapters.map((c, ci) => {
-      if (c.verses.length !== books[i].chapters[ci]) {
-        throw new Error(`${t} ${b.name} ${ci + 1}: verse count mismatch`);
-      }
-      return c.verses.map((v) => v.text.trim());
-    });
+  const all = texts[t].map((b, i) => {
+    const chapters = b.chapters.map((c, ci) => fit(c.verses, books[i].chapters[ci], strict, `${t} ${b.name} ${ci + 1}`));
+    if (chapters.length !== books[i].chapters.length) throw new Error(`${t} ${b.name}: chapter count mismatch`);
     writeFileSync(join(dir, `${i}.json`), JSON.stringify(chapters));
+    return chapters;
   });
+  if (!strict) packs[t] = all;
 }
+// One file per downloadable translation, for the app to fetch whole.
+mkdirSync(join(OUT, "packs"), { recursive: true });
+for (const [t, all] of Object.entries(packs)) writeFileSync(join(OUT, "packs", `${t}.json`), JSON.stringify(all));
 
 // ---- Cross-references ---------------------------------------------------
 const zip = join(CACHE, "cross-references.zip");
