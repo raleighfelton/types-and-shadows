@@ -34,6 +34,12 @@ export const TRANSLATIONS = [
   { id: "ASV", name: "American Standard Version", note: "1901 · public domain", available: true },
   { id: "YLT", name: "Young's Literal Translation", note: "1898 · word for word", available: true },
   { id: "Darby", name: "Darby Translation", note: "1890 · public domain", available: true },
+  { id: "NHEB", name: "New Heart English Bible", note: "Modern · public domain", available: true },
+  { id: "LEB", name: "Lexham English Bible", note: "2012 · Logos, free to share", available: true },
+  { id: "Geneva1599", label: "Geneva", name: "Geneva Bible", note: "1599 · the Pilgrims' Bible", available: true },
+  { id: "Webster", name: "Webster Bible", note: "1833 · public domain", available: true },
+  { id: "Rotherham", name: "Rotherham's Emphasized Bible", note: "1902 · stress marked", available: true },
+  { id: "BBE", name: "Bible in Basic English", note: "1949 · a thousand-word vocabulary", available: true },
   { id: "LSB", name: "Legacy Standard Bible", note: "Needs publisher permission", available: false },
   { id: "ESV", name: "English Standard Version", note: "Needs an API key", available: false },
 ] as const;

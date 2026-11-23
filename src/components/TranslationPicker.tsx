@@ -3,6 +3,12 @@
 import { usePopover } from "@/lib/usePopover";
 import { TRANSLATIONS, type TranslationId } from "@/lib/bible";
 
+/** The short name shown in the control: the id, unless a translation sets a label. */
+function shortLabel(id: TranslationId): string {
+  const t = TRANSLATIONS.find((x) => x.id === id) as { label?: string } | undefined;
+  return t?.label ?? id;
+}
+
 export default function TranslationPicker({
   value,
   onChange,
@@ -22,7 +28,7 @@ export default function TranslationPicker({
         className="control smallcaps flex items-center gap-2"
       >
         <span className="text-muted">Text</span>
-        <span className="text-parchment">{value}</span>
+        <span className="text-parchment">{shortLabel(value)}</span>
         <svg width="9" height="6" viewBox="0 0 9 6" className={`transition-transform ${open ? "rotate-180" : ""}`}>
           <path d="M1 1l3.5 3.5L8 1" stroke="currentColor" fill="none" strokeWidth="1.2" />
         </svg>
@@ -50,7 +56,7 @@ export default function TranslationPicker({
                     t.id === value ? "text-gold" : t.available ? "text-parchment" : "text-muted"
                   }`}
                 >
-                  {t.id}
+                  {shortLabel(t.id)}
                 </span>
                 <span className="min-w-0">
                   <span className={`block text-[15px] leading-snug ${t.available ? "text-parchment/90" : "text-muted"}`}>
